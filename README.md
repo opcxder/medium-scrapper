@@ -2,9 +2,43 @@
 
 A scalable Medium author scraper that extracts all posts from a given Medium author while handling rate limits, bypassing restrictions, and optimizing performance.
 
+## Setup
+
+1. Install Node.js 20 or later from [nodejs.org](https://nodejs.org/)
+
+2. Clone this repository:
+```bash
+git clone https://github.com/opcxder/medium-scrapper.git
+cd medium-scrapper
+```
+
+3. Install dependencies and setup Playwright:
+```bash
+npm run setup
+```
+
+## Usage
+
+1. Create an `input.json` file with your configuration:
+```json
+{
+  "authorUrl": "https://medium.com/@medium",
+  "maxPosts": 100,
+  "includeArticleContent": true,
+  "outputFormat": "json"
+}
+```
+
+2. Run the scraper:
+```bash
+npm start
+```
+
+3. Check the `output` directory for your scraped data.
+
 ## Input Schema
 
-The scraper accepts input in JSON format with the following fields. The complete schema can be found in `input_schema.json`.
+The scraper accepts input in JSON format with the following fields. The complete schema can be found in `INPUT_SCHEMA.json`.
 
 ### Required Fields
 
@@ -29,34 +63,11 @@ The scraper accepts input in JSON format with the following fields. The complete
   - "include-summary": Only scrape article summary
   - "full-bypass": Attempt to bypass premium restrictions
 
-## Usage
-
-1. Create an `input.json` file with your configuration:
-\`\`\`json
-{
-  "authorUrl": "https://medium.com/@medium",
-  "maxPosts": 100,
-  "includeArticleContent": true,
-  "outputFormat": "json"
-}
-\`\`\`
-
-2. Run with Docker:
-\`\`\`bash
-# Windows CMD
-docker run -v %cd%/output:/app/output -v %cd%/input.json:/app/input.json medium-scraper
-
-# Windows PowerShell
-docker run -v ${PWD}/output:/app/output -v ${PWD}/input.json:/app/input.json medium-scraper
-\`\`\`
-
-3. Check the `output` directory for your scraped data.
-
 ## Output Format
 
 The scraper generates structured data in your chosen format (JSON/CSV/XLSX):
 
-\`\`\`json
+```json
 {
   "author": {
     "name": "Medium Staff",
@@ -78,21 +89,21 @@ The scraper generates structured data in your chosen format (JSON/CSV/XLSX):
     }
   ]
 }
-\`\`\`
+```
 
 ## Development
 
 1. Install dependencies:
-\`\`\`bash
+```bash
 npm install
-\`\`\`
+```
 
 2. Run locally:
-\`\`\`bash
+```bash
 npm start
-\`\`\`
+```
 
-3. Build Docker image:
-\`\`\`bash
-npm run docker:build
-\`\`\` 
+3. Clean output and cache:
+```bash
+npm run clean
+``` 

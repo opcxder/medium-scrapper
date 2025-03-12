@@ -19,6 +19,7 @@ cache/
 !package.json
 !package-lock.json
 !input.json
+!INPUT_SCHEMA.json
 !tsconfig.json
 
 # Logs

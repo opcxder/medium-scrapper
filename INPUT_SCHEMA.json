@@ -1,1 +1,91 @@
- 
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["authorUrl"],
+  "additionalProperties": false,
+  "properties": {
+    "authorUrl": {
+      "type": "string",
+      "pattern": "^https://medium\\.com/@[\\w-]+$",
+      "description": "The Medium profile URL of the author whose posts need to be scraped"
+    },
+    "maxPosts": {
+      "type": "integer",
+      "minimum": -1,
+      "default": -1,
+      "description": "The number of posts to scrape. -1 means all posts"
+    },
+    "includeArticleContent": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to scrape the full article content or just metadata"
+    },
+    "outputFormat": {
+      "type": "string",
+      "enum": ["json", "csv", "xlsx"],
+      "default": "json",
+      "description": "The format of the output file"
+    },
+    "cacheEnabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "If enabled, it avoids redundant requests"
+    },
+    "rateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestsPerMinute": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60,
+          "default": 30,
+          "description": "Number of requests allowed per minute"
+        },
+        "randomDelay": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "default": [2, 5],
+          "description": "Random delay range between requests in seconds [min, max]"
+        }
+      },
+      "required": ["requestsPerMinute", "randomDelay"]
+    },
+    "proxy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "useProxy": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to use proxy servers"
+        },
+        "proxyUrls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(http|https|socks4|socks5)://[\\w\\.-]+(:\\d+)?$"
+          },
+          "description": "List of proxy URLs to rotate through"
+        }
+      },
+      "required": ["useProxy"]
+    },
+    "recaptchaBypass": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, use a CAPTCHA solving service"
+    },
+    "premiumHandling": {
+      "type": "string",
+      "enum": ["exclude", "include-summary", "full-bypass"],
+      "default": "exclude",
+      "description": "How to handle premium articles"
+    }
+  }
+} 

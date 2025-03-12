@@ -6,8 +6,8 @@
     "scripts": {
         "start": "node src/index.js",
         "test": "jest",
-        "docker:build": "docker build -t medium-scraper .",
-        "docker:run": "docker run -v %cd%/output:/app/output -v %cd%/input.json:/app/input.json medium-scraper"
+        "setup": "npm install && npx playwright install chromium",
+        "clean": "rimraf output/* cache/*"
     },
     "keywords": [
         "medium",
@@ -21,7 +21,8 @@
         "json2csv": "^5.0.7",
         "node-fetch": "^2.7.0",
         "playwright": "^1.42.1",
-        "xlsx": "^0.18.5"
+        "xlsx": "^0.18.5",
+        "rimraf": "^5.0.5"
     },
     "devDependencies": {
         "jest": "^29.7.0"
