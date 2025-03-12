@@ -1,6 +1,6 @@
 {
-    "authorUrl": "https://medium.com/@timdenning",
-    "maxPosts": 10,
+    "authorUrl": "https://medium.com/@medium",
+    "maxPosts": 100,
     "includeArticleContent": true,
     "outputFormat": "json",
     "cacheEnabled": true,
@@ -9,8 +9,8 @@
         "randomDelay": [2, 5]
     },
     "proxy": {
-        "enabled": false,
-        "urls": []
+        "useProxy": false,
+        "proxyUrls": []
     },
     "recaptchaBypass": false,
     "premiumHandling": "include-summary"
