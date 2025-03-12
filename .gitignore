@@ -89,4 +89,7 @@ debug/
 .git/
 *.pid
 *.seed
-*.pid.lock 
+*.pid.lock
+
+# Build
+*.tsbuildinfo 
