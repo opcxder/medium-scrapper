@@ -1,0 +1,17 @@
+{
+    "authorUrl": "https://medium.com/@timdenning",
+    "maxPosts": 10,
+    "includeArticleContent": true,
+    "outputFormat": "json",
+    "cacheEnabled": true,
+    "rateLimit": {
+        "requestsPerMinute": 30,
+        "randomDelay": [2, 5]
+    },
+    "proxy": {
+        "enabled": false,
+        "urls": []
+    },
+    "recaptchaBypass": false,
+    "premiumHandling": "include-summary"
+} 

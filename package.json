@@ -1,0 +1,33 @@
+{
+    "name": "medium-scraper",
+    "version": "1.0.0",
+    "description": "A scalable Medium author scraper with rate limiting, caching, and proxy support",
+    "type": "module",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "node src/main.js",
+        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+        "docker:build": "docker build -t medium-scraper .",
+        "docker:run": "docker run -v \"$(pwd)/output:/app/output\" -v \"$(pwd)/cache:/app/cache\" medium-scraper"
+    },
+    "keywords": [
+        "medium",
+        "scraper",
+        "crawler",
+        "playwright"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "playwright": "^1.41.0",
+        "json2csv": "^5.0.7",
+        "xlsx": "^0.18.5",
+        "2captcha": "^3.0.7"
+    },
+    "devDependencies": {
+        "jest": "^29.7.0"
+    },
+    "engines": {
+        "node": ">=16.0.0"
+    }
+} 
