@@ -1,24 +1,28 @@
-# Use Windows-based Node.js image
-FROM mcr.microsoft.com/windows/nanoserver:ltsc2022
+# Use Node.js base image
+FROM mcr.microsoft.com/playwright:v1.41.0-focal
 
 # Set working directory
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files and schema
+COPY package*.json input_schema.json ./
 
 # Install dependencies
 RUN npm install
 
-# Install Playwright Chromium
-RUN npx playwright install chromium
-
-# Copy project files
+# Copy the rest of the application files
 COPY . .
+
+# Create necessary directories
+RUN mkdir -p output cache
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PLAYWRIGHT_BROWSERS_PATH="C:\\ms-playwright"
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
 
-# Command to run the scraper
-CMD ["node", "src/index.js"]
+# Set permissions
+RUN chown -R node:node /usr/src/app
+USER node
+
+# Define the command to run the actor
+CMD ["npm", "start"] 

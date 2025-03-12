@@ -4,7 +4,7 @@ A scalable Medium author scraper that extracts all posts from a given Medium aut
 
 ## Input Schema
 
-The scraper accepts input in JSON format with the following fields:
+The scraper accepts input in JSON format with the following fields. The complete schema can be found in `input_schema.json`.
 
 ### Required Fields
 
