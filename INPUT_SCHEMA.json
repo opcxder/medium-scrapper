@@ -1,93 +1,109 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Medium Author Scraper Input",
-  "description": "Configuration schema for the Medium Author Scraper",
+  "description": "Configuration schema for the Medium Author Scraper - extracts all posts from a given Medium author while handling rate limits and restrictions",
   "type": "object",
+  "schemaVersion": 1,
   "required": ["authorUrl"],
   "additionalProperties": false,
   "properties": {
     "authorUrl": {
+      "title": "Author URL",
       "type": "string",
+      "description": "The Medium profile URL of the author whose posts need to be scraped",
       "pattern": "^https://medium\\.com/@[\\w-]+$",
-      "description": "The Medium profile URL of the author whose posts need to be scraped"
+      "editor": "textfield",
+      "prefill": "https://medium.com/@medium"
     },
     "maxPosts": {
+      "title": "Maximum Posts",
       "type": "integer",
+      "description": "The number of posts to scrape. Use -1 to scrape all posts",
       "minimum": -1,
       "default": -1,
-      "description": "The number of posts to scrape. -1 means all posts"
+      "unit": "posts",
+      "editor": "number"
     },
     "includeArticleContent": {
+      "title": "Include Full Content",
       "type": "boolean",
+      "description": "Whether to scrape the full article content or just metadata",
       "default": true,
-      "description": "Whether to scrape the full article content or just metadata"
+      "groupCaption": "Content Options"
     },
     "outputFormat": {
+      "title": "Output Format",
       "type": "string",
+      "description": "The format of the output file",
       "enum": ["json", "csv", "xlsx"],
+      "enumTitles": ["JSON", "CSV", "Excel (XLSX)"],
       "default": "json",
-      "description": "The format of the output file"
+      "editor": "select"
     },
     "cacheEnabled": {
+      "title": "Enable Caching",
       "type": "boolean",
+      "description": "If enabled, it avoids redundant requests by caching responses",
       "default": true,
-      "description": "If enabled, it avoids redundant requests"
+      "groupCaption": "Performance Options"
     },
     "rateLimit": {
+      "title": "Rate Limiting",
       "type": "object",
-      "additionalProperties": false,
+      "description": "Configure request rate limiting to avoid being blocked",
+      "editor": "json",
+      "prefill": {
+        "requestsPerMinute": 30,
+        "randomDelay": [2, 5]
+      },
       "properties": {
         "requestsPerMinute": {
+          "title": "Requests Per Minute",
           "type": "integer",
+          "description": "Number of requests allowed per minute",
           "minimum": 1,
           "maximum": 60,
-          "default": 30,
-          "description": "Number of requests allowed per minute"
+          "default": 30
         },
         "randomDelay": {
+          "title": "Random Delay",
           "type": "array",
+          "description": "Random delay range between requests in seconds [min, max]",
+          "minItems": 2,
+          "maxItems": 2,
           "items": {
             "type": "number",
             "minimum": 0
           },
-          "minItems": 2,
-          "maxItems": 2,
-          "default": [2, 5],
-          "description": "Random delay range between requests in seconds [min, max]"
+          "default": [2, 5]
         }
       },
       "required": ["requestsPerMinute", "randomDelay"]
     },
     "proxy": {
+      "title": "Proxy Configuration",
       "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "useProxy": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether to use proxy servers"
-        },
-        "proxyUrls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^(http|https|socks4|socks5)://[\\w\\.-]+(:\\d+)?$"
-          },
-          "description": "List of proxy URLs to rotate through"
-        }
-      },
-      "required": ["useProxy"]
+      "description": "Configure proxy settings to avoid IP blocks",
+      "editor": "proxy",
+      "prefill": {
+        "useApifyProxy": true
+      }
     },
     "recaptchaBypass": {
+      "title": "Bypass reCAPTCHA",
       "type": "boolean",
+      "description": "If true, use a CAPTCHA solving service (requires API key)",
       "default": false,
-      "description": "If true, use a CAPTCHA solving service"
+      "groupCaption": "Advanced Options"
     },
     "premiumHandling": {
+      "title": "Premium Content Handling",
       "type": "string",
+      "description": "How to handle premium (member-only) articles",
       "enum": ["exclude", "include-summary", "full-bypass"],
+      "enumTitles": ["Skip Premium Articles", "Include Summary Only", "Try Full Bypass"],
       "default": "exclude",
-      "description": "How to handle premium articles"
+      "editor": "select"
     }
   }
 } 
