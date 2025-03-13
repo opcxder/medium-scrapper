@@ -21,35 +21,39 @@ export class MediumScraper {
      */
     async init() {
         try {
-            // Check if running in Apify environment
+            // Check if running in Apify or Docker environment
             const isApify = process.env.APIFY_TOKEN || process.env.APIFY;
+            const isDocker = process.env.NODE_ENV === 'production';
+            const isWindows = process.platform === 'win32';
             
             // Launch browser with configured options
             this.browser = await retry(async () => {
+                const launchOptions = {
+                    headless: true,
+                    args: [
+                        '--disable-dev-shm-usage',
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox'
+                    ]
+                };
+
                 if (isApify) {
                     // Use Apify's browser pool
-                    return await chromium.launch({
-                        headless: true, // Always headless in Apify
-                        args: [
-                            '--disable-dev-shm-usage',
-                            '--no-sandbox',
-                            '--disable-setuid-sandbox'
-                        ],
-                        executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-                    });
+                    launchOptions.executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+                } else if (isDocker) {
+                    // Use globally installed Playwright in Docker
+                    if (isWindows) {
+                        launchOptions.executablePath = path.join(process.env.PLAYWRIGHT_BROWSERS_PATH || '', 'chromium', 'chrome.exe');
+                    } else {
+                        launchOptions.channel = 'chromium';
+                    }
                 } else {
                     // Local environment
-                    return await chromium.launch({
-                        headless: CONFIG.browser.headless,
-                        args: [
-                            '--disable-dev-shm-usage',
-                            '--no-sandbox',
-                            '--disable-setuid-sandbox',
-                            '--disable-gpu',
-                            '--disable-web-security'
-                        ]
-                    });
+                    launchOptions.args.push('--disable-gpu', '--disable-web-security');
+                    launchOptions.headless = CONFIG.browser.headless;
                 }
+
+                return await chromium.launch(launchOptions);
             });
 
             // Create new context with configured options
