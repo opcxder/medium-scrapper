@@ -21,18 +21,35 @@ export class MediumScraper {
      */
     async init() {
         try {
+            // Check if running in Apify environment
+            const isApify = process.env.APIFY_TOKEN || process.env.APIFY;
+            
             // Launch browser with configured options
             this.browser = await retry(async () => {
-                return await chromium.launch({
-                    headless: CONFIG.browser.headless,
-                    args: [
-                        '--disable-dev-shm-usage',
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-gpu',
-                        '--disable-web-security'
-                    ]
-                });
+                if (isApify) {
+                    // Use Apify's browser pool
+                    return await chromium.launch({
+                        headless: true, // Always headless in Apify
+                        args: [
+                            '--disable-dev-shm-usage',
+                            '--no-sandbox',
+                            '--disable-setuid-sandbox'
+                        ],
+                        executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+                    });
+                } else {
+                    // Local environment
+                    return await chromium.launch({
+                        headless: CONFIG.browser.headless,
+                        args: [
+                            '--disable-dev-shm-usage',
+                            '--no-sandbox',
+                            '--disable-setuid-sandbox',
+                            '--disable-gpu',
+                            '--disable-web-security'
+                        ]
+                    });
+                }
             });
 
             // Create new context with configured options
@@ -43,8 +60,13 @@ export class MediumScraper {
                     ignoreHTTPSErrors: true
                 });
 
-                if (CONFIG.proxy?.useProxy) {
-                    const proxy = CONFIG.proxy.proxyUrls[Math.floor(Math.random() * CONFIG.proxy.proxyUrls.length)];
+                // Use Apify Proxy if available
+                if (isApify && process.env.APIFY_PROXY_URL) {
+                    await context.setProxy({
+                        server: process.env.APIFY_PROXY_URL
+                    });
+                } else if (CONFIG.proxy?.enabled && CONFIG.proxy.urls.length > 0) {
+                    const proxy = CONFIG.proxy.urls[Math.floor(Math.random() * CONFIG.proxy.urls.length)];
                     await context.setProxy({ server: proxy });
                 }
 

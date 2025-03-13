@@ -1,7 +1,7 @@
 /**
  * @typedef {Object} ProxyConfig
- * @property {boolean} useProxy - Whether to use proxy servers
- * @property {string[]} proxyUrls - List of proxy URLs to rotate through
+ * @property {boolean} enabled - Whether to use proxy servers
+ * @property {string[]} urls - List of proxy URLs to rotate through
  */
 
 /**
@@ -25,8 +25,7 @@ const CONFIG = {
     // Proxy settings
     proxy: {
         enabled: false,
-        urls: [],
-        currentIndex: 0
+        urls: []
     },
 
     // Cache settings
