@@ -57,7 +57,6 @@ The scraper accepts input in JSON format with the following fields. The complete
 - `proxy` (object):
   - `useProxy` (boolean, default: false): Whether to use proxy servers.
   - `proxyUrls` (array): List of proxy URLs to rotate through.
-- `recaptchaBypass` (boolean, default: false): Use CAPTCHA solving service.
 - `premiumHandling` (string, default: "exclude"):
   - "exclude": Skip premium articles
   - "include-summary": Only scrape article summary

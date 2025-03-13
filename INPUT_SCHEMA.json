@@ -65,7 +65,8 @@
         "type": "number",
         "minimum": 0
       },
-      "default": [2, 5]
+      "default": [2, 5],
+      "editor": "json"
     },
     "proxy": {
       "title": "Proxy Configuration",
@@ -75,13 +76,6 @@
       "prefill": {
         "useApifyProxy": true
       }
-    },
-    "recaptchaBypass": {
-      "title": "Bypass reCAPTCHA",
-      "type": "boolean",
-      "description": "If true, use a CAPTCHA solving service (requires API key)",
-      "default": false,
-      "groupCaption": "Advanced Options"
     },
     "premiumHandling": {
       "title": "Premium Content Handling",
