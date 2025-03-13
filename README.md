@@ -25,7 +25,9 @@ npm run setup
   "authorUrl": "https://medium.com/@medium",
   "maxPosts": 100,
   "includeArticleContent": true,
-  "outputFormat": "json"
+  "outputFormat": "json",
+  "requestsPerMinute": 30,
+  "delayRange": "2,5"
 }
 ```
 
@@ -51,12 +53,10 @@ The scraper accepts input in JSON format with the following fields. The complete
 - `includeArticleContent` (boolean, default: true): Whether to scrape full article content.
 - `outputFormat` (string, default: "json"): Output format - "json", "csv", or "xlsx".
 - `cacheEnabled` (boolean, default: true): Enable caching to avoid redundant requests.
-- `rateLimit` (object):
-  - `requestsPerMinute` (integer, default: 30): Maximum requests per minute.
-  - `randomDelay` (array, default: [2, 5]): Random delay range in seconds.
-- `proxy` (object):
-  - `useProxy` (boolean, default: false): Whether to use proxy servers.
-  - `proxyUrls` (array): List of proxy URLs to rotate through.
+- `requestsPerMinute` (integer, default: 30): Maximum requests per minute.
+- `delayRange` (string, default: "2,5"): Random delay range between requests in seconds (format: "min,max").
+- `proxy` (object): Configure proxy settings to avoid IP blocks.
+  - `useApifyProxy` (boolean, default: true): Whether to use Apify's proxy service.
 - `premiumHandling` (string, default: "exclude"):
   - "exclude": Skip premium articles
   - "include-summary": Only scrape article summary
