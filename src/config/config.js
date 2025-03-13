@@ -50,6 +50,18 @@ const CONFIG = {
         headless: true,
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         viewport: { width: 1920, height: 1080 }
+    },
+
+    // Retry settings
+    retry: {
+        maxRetries: 3,
+        initialDelay: 3000,
+        maxDelay: 10000
+    },
+
+    // Navigation settings
+    navigation: {
+        timeout: 30000
     }
 };
 

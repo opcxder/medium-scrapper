@@ -28,12 +28,9 @@ export class Author {
         this.username = data.username;
         this.bio = data.bio;
         this.stats = {
-            followers: parseInt(data.stats.followers) || 0,
-            following: parseInt(data.stats.following) || 0,
-            totalPosts: parseInt(data.stats.totalPosts) || 0
+            followers: parseInt(data.followers) || 0,
+            following: parseInt(data.following) || 0
         };
-        this.socialLinks = data.socialLinks || {};
-        this.imageUrl = data.imageUrl;
         this.scrapedAt = new Date().toISOString();
     }
 
@@ -47,8 +44,6 @@ export class Author {
             username: this.username,
             bio: this.bio,
             stats: this.stats,
-            socialLinks: this.socialLinks,
-            imageUrl: this.imageUrl,
             scrapedAt: this.scrapedAt
         };
     }
@@ -64,12 +59,6 @@ export class Author {
             bio: this.bio.replace(/\n/g, ' '),
             followers: this.stats.followers,
             following: this.stats.following,
-            totalPosts: this.stats.totalPosts,
-            twitter: this.socialLinks.twitter || '',
-            linkedin: this.socialLinks.linkedin || '',
-            github: this.socialLinks.github || '',
-            website: this.socialLinks.website || '',
-            imageUrl: this.imageUrl,
             scrapedAt: this.scrapedAt
         };
     }
@@ -81,42 +70,17 @@ export class Author {
      */
     static async fromPage(page) {
         const data = await page.evaluate(() => {
-            const getTextContent = selector => {
-                const element = document.querySelector(selector);
-                return element ? element.textContent.trim() : '';
-            };
-
-            const getFollowerCount = () => {
-                const element = document.querySelector('[data-test-id="follower-count"]');
-                if (!element) return 0;
-                const text = element.textContent.trim();
-                const number = text.match(/\d+/)?.[0] || '0';
-                return parseInt(number);
-            };
-
-            const getSocialLinks = () => {
-                const links = {};
-                document.querySelectorAll('a[href*="twitter.com"], a[href*="linkedin.com"], a[href*="github.com"]')
-                    .forEach(link => {
-                        const href = link.href;
-                        if (href.includes('twitter.com')) links.twitter = href;
-                        if (href.includes('linkedin.com')) links.linkedin = href;
-                        if (href.includes('github.com')) links.github = href;
-                    });
-                return links;
-            };
+            const name = document.querySelector('h1')?.textContent.trim() || '';
+            const bio = document.querySelector('[data-testid="authorBio"]')?.textContent.trim() || '';
+            const followersText = document.querySelector('[data-testid="followersCount"]')?.textContent.trim() || '0';
+            const followingText = document.querySelector('[data-testid="followingCount"]')?.textContent.trim() || '0';
 
             return {
-                name: getTextContent('[data-test-id="user-name"]'),
+                name,
                 username: window.location.pathname.split('@')[1],
-                bio: getTextContent('[data-test-id="user-bio"]'),
-                stats: {
-                    followers: getFollowerCount(),
-                    following: parseInt(getTextContent('[data-test-id="following-count"]') || '0'),
-                    totalPosts: document.querySelectorAll('article').length
-                },
-                socialLinks: getSocialLinks(),
-                imageUrl: document.querySelector('[data-test-id="user-avatar"]')?.src || ''
+                bio,
+                followers: parseInt(followersText.replace(/[^0-9]/g, '')) || 0,
+                following: parseInt(followingText.replace(/[^0-9]/g, '')) || 0
             };
         });
 

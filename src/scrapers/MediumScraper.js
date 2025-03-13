@@ -3,6 +3,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import CONFIG from '../config/config.js';
 import { retry } from '../utils/retry.js';
+import { Author } from '../models/Author.js';
+import { Post } from '../models/Post.js';
 
 export class MediumScraper {
     constructor(options = {}) {
@@ -97,6 +99,10 @@ export class MediumScraper {
      * Navigate to URL with retry and error handling
      */
     async navigateTo(url) {
+        if (!url) {
+            throw new Error('Invalid URL: URL cannot be empty');
+        }
+
         return await retry(async () => {
             await this.enforceRateLimit();
             await this.page.goto(url, { 
@@ -111,25 +117,14 @@ export class MediumScraper {
      */
     async scrapeAuthor(authorUrl) {
         try {
+            if (!authorUrl) {
+                throw new Error('Author URL is required');
+            }
+
             await this.navigateTo(authorUrl);
 
-            // Get author details with retry
-            const author = await retry(async () => {
-                return await this.page.evaluate(() => {
-                    const name = document.querySelector('h1')?.textContent.trim() || '';
-                    const bio = document.querySelector('[data-testid="authorBio"]')?.textContent.trim() || '';
-                    const followersText = document.querySelector('[data-testid="followersCount"]')?.textContent.trim() || '0';
-                    const followingText = document.querySelector('[data-testid="followingCount"]')?.textContent.trim() || '0';
-
-                    return {
-                        name,
-                        username: window.location.pathname.split('@')[1],
-                        bio,
-                        followers: parseInt(followersText.replace(/[^0-9]/g, '')) || 0,
-                        following: parseInt(followingText.replace(/[^0-9]/g, '')) || 0
-                    };
-                });
-            });
+            // Get author details using Author model
+            const author = await Author.fromPage(this.page);
 
             // Navigate to author's stories page
             const storiesUrl = `${authorUrl}/latest`;
@@ -163,13 +158,16 @@ export class MediumScraper {
                     });
                 });
 
-                // Add new unique posts
-                for (const post of newPosts) {
-                    if (!posts.some(p => p.url === post.url)) {
-                        posts.push(post);
-                        if (posts.length >= this.maxPosts) {
-                            hasMore = false;
-                            break;
+                // Add new unique posts using Post model
+                for (const postData of newPosts) {
+                    if (!posts.some(p => p.url === postData.url)) {
+                        const post = new Post(postData);
+                        if (post.url) {
+                            posts.push(post);
+                            if (posts.length >= this.maxPosts) {
+                                hasMore = false;
+                                break;
+                            }
                         }
                     }
                 }
@@ -195,6 +193,8 @@ export class MediumScraper {
             // Fetch article content if required
             if (this.includeArticleContent) {
                 for (const post of posts) {
+                    if (!post.url) continue;
+                    
                     try {
                         await this.navigateTo(post.url);
                         
@@ -205,13 +205,14 @@ export class MediumScraper {
                             continue;
                         }
 
-                        post.content = await retry(async () => {
+                        const content = await retry(async () => {
                             return await this.page.evaluate(() => {
                                 const articleContent = document.querySelector('article');
                                 return articleContent ? articleContent.textContent.trim() : '';
                             });
                         });
-                        post.isPremium = isPremium;
+                        
+                        Object.assign(post, { content, isPremium });
                     } catch (error) {
                         console.error(`Failed to scrape content for ${post.url}:`, error);
                         post.content = null;

@@ -1,17 +1,10 @@
 {
     "authorUrl": "https://medium.com/@medium",
-    "maxPosts": 100,
+    "maxPosts": 10,
     "includeArticleContent": true,
     "outputFormat": "json",
+    "requestsPerMinute": 30,
+    "delayRange": "2,5",
     "cacheEnabled": true,
-    "rateLimit": {
-        "requestsPerMinute": 30,
-        "randomDelay": [2, 5]
-    },
-    "proxy": {
-        "useProxy": false,
-        "proxyUrls": []
-    },
-    "recaptchaBypass": false,
-    "premiumHandling": "include-summary"
+    "premiumHandling": "exclude"
 } 
