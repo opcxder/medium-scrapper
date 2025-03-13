@@ -1,10 +1,4 @@
 /**
- * @typedef {Object} RateLimit
- * @property {number} requestsPerMinute - Maximum number of requests per minute
- * @property {[number, number]} randomDelay - Range for random delay between requests [min, max] in seconds
- */
-
-/**
  * @typedef {Object} ProxyConfig
  * @property {boolean} useProxy - Whether to use proxy servers
  * @property {string[]} proxyUrls - List of proxy URLs to rotate through
@@ -12,10 +6,10 @@
 
 /**
  * @typedef {Object} Config
- * @property {RateLimit} rateLimit - Rate limiting configuration
+ * @property {number} requestsPerMinute - Maximum number of requests per minute
+ * @property {string} delayRange - Random delay range between requests (format: "min,max")
  * @property {ProxyConfig} proxy - Proxy configuration
  * @property {boolean} cacheEnabled - Whether to use caching
- * @property {boolean} recaptchaBypass - Whether to attempt reCAPTCHA bypass
  * @property {'exclude' | 'include-summary'} premiumHandling - How to handle premium articles
  * @property {'json' | 'csv' | 'xlsx'} outputFormat - Output format for scraped data
  * @property {string} cacheDir - Directory for caching data
@@ -25,10 +19,8 @@
 /** @type {Config} */
 const CONFIG = {
     // Rate limiting settings
-    rateLimit: {
-        requestsPerMinute: 30,
-        randomDelay: [2, 5] // seconds
-    },
+    requestsPerMinute: 30,
+    delayRange: '2,5', // seconds
 
     // Proxy settings
     proxy: {
@@ -52,7 +44,6 @@ const CONFIG = {
     maxPosts: Infinity,
     includeArticleContent: true,
     premiumHandling: 'include-summary', // 'exclude' or 'include-summary'
-    recaptchaBypass: false,
 
     // Browser settings
     browser: {
@@ -70,11 +61,11 @@ export function updateConfig(userConfig) {
     if (!userConfig) return;
 
     // Update rate limit settings
-    if (userConfig.rateLimit) {
-        CONFIG.rateLimit = {
-            ...CONFIG.rateLimit,
-            ...userConfig.rateLimit
-        };
+    if (userConfig.requestsPerMinute) {
+        CONFIG.requestsPerMinute = userConfig.requestsPerMinute;
+    }
+    if (userConfig.delayRange) {
+        CONFIG.delayRange = userConfig.delayRange;
     }
 
     // Update proxy settings
@@ -105,9 +96,6 @@ export function updateConfig(userConfig) {
     if (userConfig.premiumHandling) {
         CONFIG.premiumHandling = userConfig.premiumHandling;
     }
-    if (typeof userConfig.recaptchaBypass === 'boolean') {
-        CONFIG.recaptchaBypass = userConfig.recaptchaBypass;
-    }
 }
 
 /**
@@ -116,13 +104,14 @@ export function updateConfig(userConfig) {
  */
 export function validateConfig() {
     // Validate rate limit
-    if (CONFIG.rateLimit.requestsPerMinute < 1) {
+    if (CONFIG.requestsPerMinute < 1) {
         throw new Error('Rate limit must be at least 1 request per minute');
     }
-    if (!Array.isArray(CONFIG.rateLimit.randomDelay) || 
-        CONFIG.rateLimit.randomDelay.length !== 2 ||
-        CONFIG.rateLimit.randomDelay[0] >= CONFIG.rateLimit.randomDelay[1]) {
-        throw new Error('Random delay must be an array of [min, max] in seconds');
+    
+    // Validate delay range format
+    const [minDelay, maxDelay] = CONFIG.delayRange.split(',').map(Number);
+    if (isNaN(minDelay) || isNaN(maxDelay) || minDelay >= maxDelay) {
+        throw new Error('Delay range must be in format "min,max" where min < max');
     }
 
     // Validate proxy settings

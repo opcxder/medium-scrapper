@@ -3,7 +3,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import CONFIG from '../config/config.js';
 import { retry } from '../utils/retry.js';
-import { RecaptchaSolver } from '../services/recaptchaSolver.js';
 
 export class MediumScraper {
     constructor(options = {}) {
@@ -13,7 +12,6 @@ export class MediumScraper {
         this.maxPosts = options.maxPosts || CONFIG.maxPosts;
         this.includeArticleContent = options.includeArticleContent ?? CONFIG.includeArticleContent;
         this.lastRequestTime = 0;
-        this.recaptchaSolver = CONFIG.recaptchaBypass ? new RecaptchaSolver() : null;
     }
 
     /**
@@ -75,8 +73,7 @@ export class MediumScraper {
     async enforceRateLimit() {
         const now = Date.now();
         const timeSinceLastRequest = now - this.lastRequestTime;
-        const minDelay = CONFIG.rateLimit.randomDelay[0] * 1000;
-        const maxDelay = CONFIG.rateLimit.randomDelay[1] * 1000;
+        const [minDelay, maxDelay] = CONFIG.delayRange.split(',').map(n => parseInt(n) * 1000);
         const randomDelay = Math.random() * (maxDelay - minDelay) + minDelay;
         
         if (timeSinceLastRequest < randomDelay) {
@@ -84,19 +81,6 @@ export class MediumScraper {
         }
         
         this.lastRequestTime = Date.now();
-    }
-
-    /**
-     * Handle reCAPTCHA if present
-     */
-    async handleRecaptcha() {
-        const recaptchaFrame = await this.page.$('iframe[title*="reCAPTCHA"]');
-        if (recaptchaFrame) {
-            if (!CONFIG.recaptchaBypass) {
-                throw new Error('reCAPTCHA detected but bypass is disabled');
-            }
-            await this.recaptchaSolver.solve(this.page);
-        }
     }
 
     /**
@@ -119,7 +103,6 @@ export class MediumScraper {
                 waitUntil: 'networkidle',
                 timeout: CONFIG.navigation?.timeout || 30000
             });
-            await this.handleRecaptcha();
         });
     }
 
