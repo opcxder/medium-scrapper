@@ -47,38 +47,25 @@
       "default": true,
       "groupCaption": "Performance Options"
     },
-    "rateLimit": {
-      "title": "Rate Limiting",
-      "type": "object",
-      "description": "Configure request rate limiting to avoid being blocked",
-      "editor": "json",
-      "prefill": {
-        "requestsPerMinute": 30,
-        "randomDelay": [2, 5]
+    "requestsPerMinute": {
+      "title": "Requests Per Minute",
+      "type": "integer",
+      "description": "Number of requests allowed per minute",
+      "minimum": 1,
+      "maximum": 60,
+      "default": 30
+    },
+    "randomDelay": {
+      "title": "Random Delay",
+      "type": "array",
+      "description": "Random delay range between requests in seconds [min, max]",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "number",
+        "minimum": 0
       },
-      "properties": {
-        "requestsPerMinute": {
-          "title": "Requests Per Minute",
-          "type": "integer",
-          "description": "Number of requests allowed per minute",
-          "minimum": 1,
-          "maximum": 60,
-          "default": 30
-        },
-        "randomDelay": {
-          "title": "Random Delay",
-          "type": "array",
-          "description": "Random delay range between requests in seconds [min, max]",
-          "minItems": 2,
-          "maxItems": 2,
-          "items": {
-            "type": "number",
-            "minimum": 0
-          },
-          "default": [2, 5]
-        }
-      },
-      "required": ["requestsPerMinute", "randomDelay"]
+      "default": [2, 5]
     },
     "proxy": {
       "title": "Proxy Configuration",
