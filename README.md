@@ -1,6 +1,6 @@
 # Medium Author Scraper
 
-A scalable Medium author scraper that extracts all posts from a given Medium author while handling rate limits, bypassing restrictions, and optimizing performance.
+A scalable Medium author scraper that extracts all posts from a given Medium author while handling rate limits and optimizing performance.
 
 ## Setup
 
@@ -60,7 +60,6 @@ The scraper accepts input in JSON format with the following fields. The complete
 - `premiumHandling` (string, default: "exclude"):
   - "exclude": Skip premium articles
   - "include-summary": Only scrape article summary
-  - "full-bypass": Attempt to bypass premium restrictions
 
 ## Output Format
 

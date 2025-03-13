@@ -27,8 +27,7 @@
       "title": "Include Full Content",
       "type": "boolean",
       "description": "Whether to scrape the full article content or just metadata",
-      "default": true,
-      "groupCaption": "Content Options"
+      "default": true
     },
     "outputFormat": {
       "title": "Output Format",
@@ -43,8 +42,7 @@
       "title": "Enable Caching",
       "type": "boolean",
       "description": "If enabled, it avoids redundant requests by caching responses",
-      "default": true,
-      "groupCaption": "Performance Options"
+      "default": true
     },
     "requestsPerMinute": {
       "title": "Requests Per Minute",
@@ -52,8 +50,7 @@
       "description": "Number of requests allowed per minute",
       "minimum": 1,
       "maximum": 60,
-      "default": 30,
-      "groupCaption": "Rate Limiting"
+      "default": 30
     },
     "delayRange": {
       "title": "Delay Range",
@@ -61,8 +58,7 @@
       "description": "Random delay range between requests in seconds (format: min,max)",
       "editor": "textfield",
       "default": "2,5",
-      "pattern": "^\\d+,\\d+$",
-      "groupCaption": "Rate Limiting"
+      "pattern": "^\\d+,\\d+$"
     },
     "proxy": {
       "title": "Proxy Configuration",
@@ -77,8 +73,8 @@
       "title": "Premium Content Handling",
       "type": "string",
       "description": "How to handle premium (member-only) articles",
-      "enum": ["exclude", "include-summary", "full-bypass"],
-      "enumTitles": ["Skip Premium Articles", "Include Summary Only", "Try Full Bypass"],
+      "enum": ["exclude", "include-summary"],
+      "enumTitles": ["Skip Premium Articles", "Include Summary Only"],
       "default": "exclude",
       "editor": "select"
     }
