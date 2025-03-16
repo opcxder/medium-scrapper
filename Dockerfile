@@ -31,8 +31,8 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Install Playwright
-RUN npx playwright install chromium --with-deps
+# Skip Playwright browser installation (Apify already has it)
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Copy source code
 COPY . .
@@ -42,7 +42,7 @@ RUN mkdir -p data/output data/cache
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PLAYWRIGHT_BROWSERS_PATH=/app/ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/pw-browsers
 
 # Run the scraper
-CMD ["node", "src/index.js"] 
+CMD ["node", "src/index.js"]

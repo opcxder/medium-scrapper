@@ -19,10 +19,11 @@
     "license": "ISC",
     "dependencies": {
         "json2csv": "^5.0.7",
+        "medium-scraper": "file:",
         "node-fetch": "^2.7.0",
         "playwright": "^1.42.1",
-        "xlsx": "^0.18.5",
-        "rimraf": "^5.0.5"
+        "rimraf": "^5.0.5",
+        "xlsx": "^0.18.5"
     },
     "devDependencies": {
         "jest": "^29.7.0"
@@ -30,4 +31,4 @@
     "engines": {
         "node": ">=20.0.0"
     }
-} 
+}
