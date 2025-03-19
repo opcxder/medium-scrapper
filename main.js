@@ -17,7 +17,7 @@ Apify.main(async () => {
     const scraper = new MediumScraper(input);
     
     try {
-        // Initialize browser
+        // Initialize scraper
         await scraper.initialize();
         
         log.info('Starting to scrape articles...', { url: input.authorUrl });
@@ -26,20 +26,27 @@ Apify.main(async () => {
         // Scrape articles
         const articles = await scraper.scrapeArticles();
         
+        // Filter articles by tags if specified
+        const filteredArticles = input.tags && input.tags.length > 0
+            ? articles.filter(article => 
+                article.tags.some(tag => input.tags.includes(tag.toLowerCase()))
+            )
+            : articles;
+        
         // Calculate statistics
         const stats = {
-            total_articles_scraped: articles.length,
-            total_comments_scraped: articles.reduce((sum, article) => sum + (article.comments?.length || 0), 0),
+            total_articles_scraped: filteredArticles.length,
+            total_comments_scraped: filteredArticles.reduce((sum, article) => sum + (article.comments?.length || 0), 0),
             time_taken: `${((Date.now() - startTime) / 1000).toFixed(1)} seconds`
         };
 
         // Export data in requested format
         const outputFormat = input.outputFormat || 'json';
-        await exportData(articles, outputFormat, './output');
+        await exportData(filteredArticles, outputFormat, './output');
 
         // Store results in default dataset
         await Apify.pushData({
-            articles,
+            articles: filteredArticles,
             stats
         });
 

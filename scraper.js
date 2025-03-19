@@ -1,5 +1,4 @@
-const { chromium } = require('playwright');
-const { Actor } = require('apify');
+const Apify = require('apify');
 const config = require('./config');
 const {
     delay,
@@ -12,26 +11,39 @@ const {
 class MediumScraper {
     constructor(input) {
         this.input = input;
-        this.browser = null;
-        this.page = null;
+        this.crawler = null;
         this.articles = [];
     }
 
     async initialize() {
-        // Launch browser with stealth configuration
-        this.browser = await chromium.launch({
-            ...config.browser,
-            proxy: this.input.useProxy ? {
-                server: process.env.APIFY_PROXY_URL
-            } : undefined
-        });
+        const { log } = Apify.utils;
 
-        this.page = await this.browser.newPage();
-        
-        // Set stealth mode
-        await this.page.addInitScript(() => {
-            Object.defineProperty(navigator, 'webdriver', { get: () => false });
-            window.chrome = { runtime: {} };
+        // Initialize the crawler
+        this.crawler = new Apify.PlaywrightCrawler({
+            launchContext: {
+                ...config.browser,
+                useChrome: true,
+                proxyUrl: this.input.useProxy ? process.env.APIFY_PROXY_URL : undefined
+            },
+            preNavigationHooks: [
+                async (crawlingContext, gotoOptions) => {
+                    const { page } = crawlingContext;
+                    // Set stealth mode
+                    await page.addInitScript(() => {
+                        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+                        window.chrome = { runtime: {} };
+                    });
+                }
+            ],
+            requestHandler: async ({ page, request }) => {
+                if (request.userData.isArticle) {
+                    await this.handleArticlePage(page, request);
+                } else {
+                    await this.handleAuthorPage(page);
+                }
+            },
+            maxRequestsPerCrawl: this.input.maxPosts > 0 ? this.input.maxPosts + 1 : undefined,
+            maxConcurrency: 1, // To respect rate limits
         });
     }
 
@@ -41,26 +53,49 @@ class MediumScraper {
         }
 
         try {
-            await this.page.goto(this.input.authorUrl, { waitUntil: 'networkidle' });
-            await this.handleInfiniteScroll();
-            const articles = await this.extractArticles();
-            return articles;
+            await this.crawler.run([{
+                url: this.input.authorUrl,
+                userData: { isArticle: false }
+            }]);
+            return this.articles;
         } catch (error) {
-            console.error('Error scraping articles:', error);
+            Apify.utils.log.error('Error scraping articles:', error);
             throw error;
         }
     }
 
-    async handleInfiniteScroll() {
+    async handleAuthorPage(page) {
+        await this.handleInfiniteScroll(page);
+        const articleUrls = await page.$$eval(config.selectors.articleCard, articles => 
+            articles.map(article => {
+                const link = article.querySelector('a');
+                return link ? link.href : null;
+            }).filter(url => url)
+        );
+
+        // Enqueue article pages
+        for (const url of articleUrls) {
+            if (this.input.maxPosts > 0 && this.articles.length >= this.input.maxPosts) {
+                break;
+            }
+            await this.crawler.addRequests([{
+                url,
+                userData: { isArticle: true }
+            }]);
+            await randomDelay(config.rateLimit.minDelay, config.rateLimit.maxDelay);
+        }
+    }
+
+    async handleInfiniteScroll(page) {
         let previousHeight = 0;
         let scrollAttempts = 0;
         const maxScrollAttempts = this.input.maxPosts > 0 ? Math.ceil(this.input.maxPosts / 10) : 30;
 
         while (scrollAttempts < maxScrollAttempts) {
-            await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+            await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
             await delay(1000);
 
-            const currentHeight = await this.page.evaluate(() => document.body.scrollHeight);
+            const currentHeight = await page.evaluate(() => document.body.scrollHeight);
             if (currentHeight === previousHeight) {
                 break;
             }
@@ -68,8 +103,7 @@ class MediumScraper {
             previousHeight = currentHeight;
             scrollAttempts++;
 
-            // Check if we have enough articles
-            const articleCount = await this.page.$$eval(config.selectors.articleCard, articles => articles.length);
+            const articleCount = await page.$$eval(config.selectors.articleCard, articles => articles.length);
             if (this.input.maxPosts > 0 && articleCount >= this.input.maxPosts) {
                 break;
             }
@@ -78,58 +112,23 @@ class MediumScraper {
         }
     }
 
-    async extractArticles() {
-        const articles = await this.page.$$(config.selectors.articleCard);
-        const extractedArticles = [];
-
-        for (let i = 0; i < articles.length; i++) {
-            if (this.input.maxPosts > 0 && extractedArticles.length >= this.input.maxPosts) {
-                break;
-            }
-
-            const article = articles[i];
-            const articleData = await this.extractArticleData(article);
-            
-            if (articleData) {
-                // Filter by tags if specified
-                if (this.input.tags && this.input.tags.length > 0) {
-                    const hasMatchingTag = articleData.tags.some(tag => 
-                        this.input.tags.includes(tag.toLowerCase())
-                    );
-                    if (!hasMatchingTag) continue;
-                }
-
-                extractedArticles.push(articleData);
-            }
-
-            await randomDelay(config.rateLimit.minDelay, config.rateLimit.maxDelay);
-        }
-
-        return extractedArticles;
-    }
-
-    async extractArticleData(articleElement) {
+    async handleArticlePage(page, request) {
         try {
-            const url = await articleElement.$eval('a', a => a.href);
-            
-            // Navigate to article page
-            await this.page.goto(url, { waitUntil: 'networkidle' });
-            
-            const isPremium = await this.page.$(config.selectors.premiumIndicator) !== null;
+            const isPremium = await page.$(config.selectors.premiumIndicator) !== null;
             
             const articleData = {
-                title: await this.page.$eval(config.selectors.title, el => el.textContent),
-                author: await this.page.$eval(config.selectors.author, el => el.textContent),
-                url: url,
+                title: await page.$eval(config.selectors.title, el => el.textContent),
+                author: await page.$eval(config.selectors.author, el => el.textContent),
+                url: request.url,
                 is_premium: isPremium,
-                tags: await this.page.$$eval(config.selectors.tags, tags => 
+                tags: await page.$$eval(config.selectors.tags, tags => 
                     tags.map(tag => tag.textContent.toLowerCase())
                 )
             };
 
             if (this.input.includePublication) {
                 try {
-                    articleData.publication = await this.page.$eval(
+                    articleData.publication = await page.$eval(
                         config.selectors.publicationName,
                         el => el.textContent
                     );
@@ -139,26 +138,25 @@ class MediumScraper {
             }
 
             if (this.input.includeContent) {
-                articleData.content = await this.page.$eval(
+                articleData.content = await page.$eval(
                     config.selectors.content,
                     el => el.textContent
                 );
             }
 
             if (this.input.includeComments) {
-                articleData.comments = await this.extractComments();
+                articleData.comments = await this.extractComments(page);
             }
 
-            return formatArticleData(articleData);
+            this.articles.push(formatArticleData(articleData));
         } catch (error) {
-            console.error(`Error extracting article data: ${error.message}`);
-            return null;
+            Apify.utils.log.error(`Error extracting article data: ${error.message}`);
         }
     }
 
-    async extractComments() {
+    async extractComments(page) {
         try {
-            const comments = await this.page.$$(config.selectors.comments);
+            const comments = await page.$$(config.selectors.comments);
             return await Promise.all(comments.map(async comment => ({
                 user: await comment.$eval('[data-testid="authorName"]', el => el.textContent),
                 comment: cleanText(await comment.$eval('[data-testid="commentContent"]', el => el.textContent)),
@@ -170,8 +168,8 @@ class MediumScraper {
     }
 
     async close() {
-        if (this.browser) {
-            await this.browser.close();
+        if (this.crawler) {
+            await this.crawler.teardown();
         }
     }
 }
