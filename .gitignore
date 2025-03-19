@@ -17,7 +17,9 @@ storage/
 output/
 *.csv
 *.xlsx
-*.json
+output.json
+package-lock.json
+package.json
 
 # IDE files
 .idea/
@@ -34,4 +36,7 @@ logs/
 *.log
 
 # Test coverage
-coverage/ 
+coverage/
+
+# Do not ignore
+!input_schema.json 
