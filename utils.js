@@ -1,5 +1,4 @@
 const Apify = require('apify');
-const { log } = Apify.utils;
 const fs = require('fs').promises;
 const path = require('path');
 const json2csv = require('json2csv').Parser;
@@ -20,7 +19,7 @@ class Utils {
      * @returns {Promise<Object>} - Object with paths to saved files
      */
     static async saveDataToFiles(data, outputDir = './output', formats = ['json', 'csv', 'xlsx'], fileName = 'medium-scraper-output') {
-        log.info(`Saving data to ${formats.join(', ')} format(s)...`);
+        console.log(`Saving data to ${formats.join(', ')} format(s)...`);
         
         try {
             // Create output directory if it doesn't exist
