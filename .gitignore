@@ -18,8 +18,6 @@ output/
 *.csv
 *.xlsx
 output.json
-package-lock.json
-package.json
 
 # IDE files
 .idea/
