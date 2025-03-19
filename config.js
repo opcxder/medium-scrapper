@@ -1,6 +1,9 @@
 const Apify = require('apify');
 const { log } = Apify.utils;
 
+// Configure logging
+log.setLevel(log.LEVELS.DEBUG);
+
 /**
  * Configures rate limiting for the scraper
  * @param {number} requestsPerSecond - Maximum requests per second
@@ -155,6 +158,7 @@ function configurePagination() {
     };
 }
 
+// Browser configuration
 const config = {
     // Browser configuration
     browser: {
@@ -201,6 +205,18 @@ const config = {
         useApifyProxy: true,
         groups: ['RESIDENTIAL'],
     },
+
+    // Logging configuration
+    logging: {
+        level: log.LEVELS.DEBUG,
+        options: {
+            prefix: 'Medium Scraper',
+            logger: new log.LoggerText({ skipTime: false }),
+        }
+    }
 };
+
+// Configure logging options
+log.setOptions(config.logging.options);
 
 module.exports = config;

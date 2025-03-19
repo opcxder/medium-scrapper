@@ -1,6 +1,7 @@
 const { Actor } = require('apify');
 const MediumScraper = require('./scraper');
 const { exportData } = require('./utils');
+const { log } = require('apify').utils;
 
 Actor.main(async () => {
     // Get input
@@ -18,7 +19,7 @@ Actor.main(async () => {
         // Initialize browser
         await scraper.initialize();
         
-        console.log('Starting to scrape articles...');
+        log.info('Starting to scrape articles...', { url: input.authorUrl });
         const startTime = Date.now();
         
         // Scrape articles
@@ -41,11 +42,10 @@ Actor.main(async () => {
             stats
         });
 
-        console.log('Scraping completed successfully!');
-        console.log('Statistics:', stats);
+        log.info('Scraping completed successfully!', stats);
 
     } catch (error) {
-        console.error('An error occurred:', error);
+        log.error('An error occurred during scraping:', { error: error.message });
         throw error;
     } finally {
         // Clean up
