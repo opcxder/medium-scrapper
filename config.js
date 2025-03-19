@@ -219,4 +219,11 @@ const config = {
 // Configure logging options
 log.setOptions(config.logging.options);
 
-module.exports = config;
+module.exports = {
+    config,
+    configureRateLimiting,
+    createProxyConfiguration,
+    configureProxyRotation,
+    configureRetryMechanism,
+    configurePagination
+};
