@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Node.js
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+.env.local
+.env.*
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Apify storage
+apify_storage
+storage
+
+# Output
+output/
+*.csv
+*.xlsx
+
+# Logs
+logs/
+*.log
+
+# DO NOT IGNORE
+!package.json
+!package-lock.json 
