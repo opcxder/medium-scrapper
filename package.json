@@ -1,15 +1,16 @@
 {
   "name": "medium-scraper-apify",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Apify actor for scraping Medium author's blog posts",
-  "main": "index.js",
+  "license": "ISC",
+  "main": "main.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node main.js"
   },
   "dependencies": {
     "apify": "^3.1.8",
-    "playwright-chromium": "^1.41.0",
+    "crawlee": "^3.0.0",
+    "playwright": "^1.41.0",
     "csv-stringify": "^6.4.5",
     "xlsx": "^0.18.5",
     "axios": "^1.6.0",
@@ -24,8 +25,5 @@
     "playwright"
   ],
   "author": "",
-  "license": "ISC",
-  "engines": {
-    "node": ">=20.0.0"
-  }
+  "repository": {}
 } 
