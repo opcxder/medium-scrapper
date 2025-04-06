@@ -1,4 +1,5 @@
-const { Actor, PlaywrightCrawler } = require('apify');
+const { Actor } = require('apify');
+const { PlaywrightCrawler } = require('@crawlee/playwright');
 const config = require('./config');
 const {
     delay,
@@ -20,7 +21,7 @@ class MediumScraper {
     async initialize() {
         // Initialize the crawler
         this.crawler = new PlaywrightCrawler({
-            launchContext: {
+            browserPoolOptions: {
                 ...config.browser,
                 useChrome: true,
                 proxyUrl: this.input.useProxy ? process.env.APIFY_PROXY_URL : undefined
@@ -35,7 +36,8 @@ class MediumScraper {
                     });
                 }
             ],
-            requestHandler: async ({ page, request }) => {
+            requestHandler: async (context) => {
+                const { page, request } = context;
                 if (request.userData.isArticle) {
                     await this.handleArticlePage(page, request);
                 } else {
