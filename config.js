@@ -1,4 +1,4 @@
-const Apify = require('apify');
+const { Actor } = require('apify');
 
 // Browser configuration
 const config = {
@@ -83,7 +83,7 @@ async function createProxyConfiguration(useProxies = true) {
         return null;
     }
     
-    return await Apify.createProxyConfiguration({
+    return await Actor.createProxyConfiguration({
         groups: ['RESIDENTIAL'],
         countryCode: 'US'
     });
