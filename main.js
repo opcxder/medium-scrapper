@@ -1,12 +1,12 @@
-const Apify = require('apify');
+const { Actor, log } = require('apify');
 const MediumScraper = require('./scraper');
 const { exportData } = require('./utils');
 
-Apify.main(async () => {
-    const { log } = Apify.utils;
+Actor.main(async () => {
+    // Initialize the scraper
     
     // Get input
-    const input = await Apify.getInput();
+    const input = await Actor.getInput();
     
     // Validate required input
     if (!input?.authorUrl) {
@@ -45,7 +45,7 @@ Apify.main(async () => {
         await exportData(filteredArticles, outputFormat, './output');
 
         // Store results in default dataset
-        await Apify.pushData({
+        await Actor.pushData({
             articles: filteredArticles,
             stats
         });
