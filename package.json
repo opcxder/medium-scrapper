@@ -9,13 +9,14 @@
   },
   "dependencies": {
     "apify": "^3.1.8",
-    "crawlee": "^3.0.0",
-    "playwright": "^1.41.0",
-    "csv-stringify": "^6.4.5",
-    "xlsx": "^0.18.5",
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
-    "json2csv": "^5.0.7"
+    "crawlee": "^3.0.0",
+    "csv-stringify": "^6.4.5",
+    "exceljs": "^4.4.0",
+    "json2csv": "^5.0.7",
+    "playwright": "^1.41.0",
+    "xlsx": "^0.18.5"
   },
   "keywords": [
     "apify",
@@ -26,4 +27,4 @@
   ],
   "author": "",
   "repository": {}
-} 
+}
