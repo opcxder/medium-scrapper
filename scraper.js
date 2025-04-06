@@ -1,4 +1,4 @@
-const Apify = require('apify');
+const { Actor, PlaywrightCrawler } = require('apify');
 const config = require('./config');
 const {
     delay,
@@ -8,6 +8,8 @@ const {
     isValidUrl
 } = require('./utils');
 
+const { log } = Actor;
+
 class MediumScraper {
     constructor(input) {
         this.input = input;
@@ -16,10 +18,8 @@ class MediumScraper {
     }
 
     async initialize() {
-        const { log } = Apify.utils;
-
         // Initialize the crawler
-        this.crawler = new Apify.PlaywrightCrawler({
+        this.crawler = new PlaywrightCrawler({
             launchContext: {
                 ...config.browser,
                 useChrome: true,
@@ -59,7 +59,7 @@ class MediumScraper {
             }]);
             return this.articles;
         } catch (error) {
-            Apify.utils.log.error('Error scraping articles:', error);
+            log.error('Error scraping articles:', error);
             throw error;
         }
     }
@@ -150,7 +150,7 @@ class MediumScraper {
 
             this.articles.push(formatArticleData(articleData));
         } catch (error) {
-            Apify.utils.log.error(`Error extracting article data: ${error.message}`);
+            log.error(`Error extracting article data: ${error.message}`);
         }
     }
 
