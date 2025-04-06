@@ -22,9 +22,11 @@ class MediumScraper {
         // Initialize the crawler
         this.crawler = new PlaywrightCrawler({
             browserPoolOptions: {
-                ...config.browser,
-                useChrome: true,
-                proxyUrl: this.input.useProxy ? process.env.APIFY_PROXY_URL : undefined
+                launchOptions: {
+                    ...config.browser,
+                    product: 'chrome',
+                },
+                proxyConfiguration: this.input.useProxy ? { proxyUrls: [process.env.APIFY_PROXY_URL] } : undefined
             },
             preNavigationHooks: [
                 async (crawlingContext, gotoOptions) => {
