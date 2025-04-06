@@ -19,13 +19,16 @@ class MediumScraper {
     }
 
     async initialize() {
+        // Initialize proxy configuration
+        const proxyConfiguration = this.input.useProxy ? await config.createProxyConfiguration(true) : undefined;
+        
         // Initialize the crawler
         this.crawler = new PlaywrightCrawler({
             browserOptions: {
                 ...config.browser,
                 product: 'chrome',
             },
-            proxyConfiguration: this.input.useProxy ? { proxyUrls: [process.env.APIFY_PROXY_URL] } : undefined,
+            proxyConfiguration,
             preNavigationHooks: [
                 async (crawlingContext, gotoOptions) => {
                     const { page } = crawlingContext;
