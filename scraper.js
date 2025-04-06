@@ -24,9 +24,11 @@ class MediumScraper {
         
         // Initialize the crawler
         this.crawler = new PlaywrightCrawler({
-            browserOptions: {
-                ...config.browser,
-                product: 'chrome',
+            launchContext: {
+                launchOptions: {
+                    ...config.browser,
+                    product: 'chrome',
+                },
             },
             proxyConfiguration,
             preNavigationHooks: [
