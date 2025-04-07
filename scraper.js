@@ -137,7 +137,7 @@ class MediumScraper {
             await randomDelay(config.rateLimit.minDelay, config.rateLimit.maxDelay);
         }
     }
-
+}
     async handleInfiniteScroll(page) {
         let previousHeight = 0;
         let scrollAttempts = 0;
