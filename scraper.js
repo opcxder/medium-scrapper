@@ -113,33 +113,71 @@ class MediumScraper {
     }
 
     async handleAuthorPage(page) {
-        try {
-            // Enhanced page loading detection
-            await Promise.race([
-                page.waitForSelector(config.selectors.articleCard, { timeout: 120000, state: 'attached' }),
-                page.waitForSelector('div[role="alert"]', { timeout: 120000 }).then(() => {
-                    throw new Error('Page access denied or rate limited');
-                })
-            ]);
+        let retryCount = 0;
+        const maxRetries = 3;
+        const initialDelay = 5000;
 
-            // Ensure page is fully loaded
-            await page.waitForFunction(
-                () => document.readyState === 'complete' && 
-                      document.querySelector('article') !== null && 
-                      !document.querySelector('.progressBar'), 
-                { timeout: 60000 }
-            );
+        while (retryCount < maxRetries) {
+            try {
+                // Initial delay to let the page settle
+                await delay(initialDelay + (retryCount * 2000));
+
+                // Check for cloudflare or other protection pages
+                const pageContent = await page.content();
+                if (pageContent.includes('security check') || pageContent.includes('cloudflare')) {
+                    throw new Error('Security check detected');
+                }
+
+                // Enhanced page loading detection with multiple fallbacks
+                await Promise.race([
+                    Promise.all([
+                        page.waitForSelector(config.selectors.articleCard, { 
+                            timeout: 120000, 
+                            state: 'attached',
+                            visible: true 
+                        }),
+                        page.waitForFunction(
+                            () => document.readyState === 'complete' && 
+                                  window.performance.timing.loadEventEnd > 0 && 
+                                  !document.querySelector('.progressBar'),
+                            { timeout: 60000 }
+                        )
+                    ]),
+                    page.waitForSelector('div[role="alert"]', { timeout: 120000 })
+                        .then(() => {
+                            throw new Error('Page access denied or rate limited');
+                        })
+                ]);
+
+                // Additional verification for content loading
+                const articles = await page.$$(config.selectors.articleCard);
+                if (!articles || articles.length === 0) {
+                    throw new Error('No articles found after page load');
+                }
 
             await this.handleInfiniteScroll(page);
             
-            const articleUrls = await page.$$eval(config.selectors.articleCard, articles => 
-                articles.map(article => {
-                    const link = article.querySelector('a');
-                    return link ? link.href : null;
-                }).filter(url => url)
-            );
+            // Enhanced article URL extraction with validation
+            const articleUrls = await page.$$eval(config.selectors.articleCard, articles => {
+                return articles.reduce((urls, article) => {
+                    const links = article.querySelectorAll('a[href*="/p/"], a[href*="/@"]');
+                    links.forEach(link => {
+                        const url = link.href;
+                        if (url && url.includes('medium.com') && !urls.includes(url)) {
+                            urls.push(url);
+                        }
+                    });
+                    return urls;
+                }, []);
+            });
 
-            // Enqueue article pages
+            if (articleUrls.length === 0) {
+                throw new Error('No valid article URLs found');
+            }
+
+            log.info(`Found ${articleUrls.length} articles to process`);
+
+            // Enqueue article pages with improved rate limiting
             for (const url of articleUrls) {
                 if (this.input.maxPosts > 0 && this.articles.length >= this.input.maxPosts) {
                     break;
@@ -148,11 +186,23 @@ class MediumScraper {
                     url,
                     userData: { isArticle: true }
                 }]);
-                await randomDelay(config.rateLimit.minDelay, config.rateLimit.maxDelay);
+                // Increased delay between requests
+                await randomDelay(config.rateLimit.minDelay * 2, config.rateLimit.maxDelay * 2);
             }
-        } catch (error) {
-            log.error('Error processing author page:', error);
-            throw error;
+                retryCount = 0;
+                break; // Success - exit retry loop
+            } catch (error) {
+                retryCount++;
+                log.warning(`Attempt ${retryCount}/${maxRetries} failed: ${error.message}`);
+                
+                if (retryCount >= maxRetries) {
+                    log.error('Failed to process author page after all retries:', error);
+                    throw error;
+                }
+                
+                // Exponential backoff
+                await delay(Math.pow(2, retryCount) * 5000);
+            }
         }
     }
     async handleInfiniteScroll(page) {
