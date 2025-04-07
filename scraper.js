@@ -125,19 +125,22 @@ class MediumScraper {
                 }).filter(url => url)
             );
 
-        // Enqueue article pages
-        for (const url of articleUrls) {
-            if (this.input.maxPosts > 0 && this.articles.length >= this.input.maxPosts) {
-                break;
+            // Enqueue article pages
+            for (const url of articleUrls) {
+                if (this.input.maxPosts > 0 && this.articles.length >= this.input.maxPosts) {
+                    break;
+                }
+                await this.crawler.addRequests([{
+                    url,
+                    userData: { isArticle: true }
+                }]);
+                await randomDelay(config.rateLimit.minDelay, config.rateLimit.maxDelay);
             }
-            await this.crawler.addRequests([{
-                url,
-                userData: { isArticle: true }
-            }]);
-            await randomDelay(config.rateLimit.minDelay, config.rateLimit.maxDelay);
+        } catch (error) {
+            log.error('Error processing author page:', error);
+            throw error;
         }
     }
-}
     async handleInfiniteScroll(page) {
         let previousHeight = 0;
         let scrollAttempts = 0;
