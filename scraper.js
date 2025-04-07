@@ -114,8 +114,22 @@ class MediumScraper {
 
     async handleAuthorPage(page) {
         try {
-            // Wait for initial content to load
-            await page.waitForSelector(config.selectors.articleCard, { timeout: 60000 });
+            // Enhanced page loading detection
+            await Promise.race([
+                page.waitForSelector(config.selectors.articleCard, { timeout: 120000, state: 'attached' }),
+                page.waitForSelector('div[role="alert"]', { timeout: 120000 }).then(() => {
+                    throw new Error('Page access denied or rate limited');
+                })
+            ]);
+
+            // Ensure page is fully loaded
+            await page.waitForFunction(
+                () => document.readyState === 'complete' && 
+                      document.querySelector('article') !== null && 
+                      !document.querySelector('.progressBar'), 
+                { timeout: 60000 }
+            );
+
             await this.handleInfiniteScroll(page);
             
             const articleUrls = await page.$$eval(config.selectors.articleCard, articles => 
@@ -145,49 +159,99 @@ class MediumScraper {
         let previousHeight = 0;
         let scrollAttempts = 0;
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 5; // Increased max retries
         const maxScrollAttempts = this.input.maxPosts > 0 ? Math.ceil(this.input.maxPosts / 10) : 30;
+        const minScrollDelay = 3000; // Increased minimum delay between scrolls
 
         while (scrollAttempts < maxScrollAttempts) {
             try {
-                await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-                await delay(2000 * Math.pow(2, retryCount)); // Exponential backoff
+                // Check for rate limiting or blocking elements
+                const isBlocked = await page.$('div[role="alert"]');
+                if (isBlocked) {
+                    throw new Error('Rate limited or blocked');
+                }
 
+                // Scroll with natural behavior
+                await page.evaluate(async () => {
+                    const distance = Math.floor(Math.random() * 100) + 100;
+                    window.scrollBy(0, distance);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    window.scrollTo(0, document.body.scrollHeight);
+                });
+
+                // Wait longer for content to load
+                await delay(minScrollDelay + Math.random() * 2000);
+
+                // Verify content loaded
                 const currentHeight = await page.evaluate(() => document.body.scrollHeight);
-                if (currentHeight === previousHeight) {
-                    break;
+                const articles = await page.$$(config.selectors.articleCard);
+                
+                if (currentHeight === previousHeight && articles.length > 0) {
+                    // Double check if we really reached the bottom
+                    await delay(5000);
+                    const finalCheck = await page.evaluate(() => document.body.scrollHeight);
+                    if (finalCheck === currentHeight) {
+                        break;
+                    }
                 }
 
                 previousHeight = currentHeight;
                 scrollAttempts++;
-                retryCount = 0; // Reset retry count on successful scroll
+                retryCount = 0;
 
-                const articleCount = await page.$$eval(config.selectors.articleCard, articles => articles.length);
+                const articleCount = articles.length;
                 if (this.input.maxPosts > 0 && articleCount >= this.input.maxPosts) {
                     break;
                 }
 
-                await randomDelay(config.rateLimit.minDelay, config.rateLimit.maxDelay);
+                await randomDelay(config.rateLimit.minDelay * 2, config.rateLimit.maxDelay * 2);
             } catch (error) {
                 retryCount++;
+                log.warning('Scroll error:', { error: error.message, retryCount });
+                
                 if (retryCount >= maxRetries) {
                     log.warning('Max retries reached during infinite scroll, moving on...');
                     break;
                 }
-                log.debug('Scroll failed, retrying with backoff...', { retryCount });
-                await delay(1000 * Math.pow(2, retryCount)); // Exponential backoff for errors
+                
+                // Exponential backoff with longer delays
+                const backoffTime = 5000 * Math.pow(2, retryCount);
+                await delay(backoffTime);
             }
         }
     }
 
     async handleArticlePage(page, request) {
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 5;
 
         while (retryCount < maxRetries) {
             try {
-                await page.waitForSelector('article', { timeout: 30000 });
+                // Check for rate limiting or blocking
+                const isBlocked = await page.$('div[role="alert"]');
+                if (isBlocked) {
+                    throw new Error('Rate limited or blocked');
+                }
+
+                // Wait for article content with increased timeout
+                await Promise.race([
+                    page.waitForSelector('article', { timeout: 60000, state: 'attached' }),
+                    page.waitForSelector('div[role="alert"]', { timeout: 60000 }).then(() => {
+                        throw new Error('Page access denied or rate limited');
+                    })
+                ]);
+
+                // Ensure all content is loaded
+                await page.waitForFunction(
+                    () => document.readyState === 'complete' && 
+                          !document.querySelector('.progressBar'),
+                    { timeout: 30000 }
+                );
+
                 const isPremium = await page.$(config.selectors.premiumIndicator) !== null;
+                
+                // Add random delay before extraction
+                await randomDelay(2000, 4000);
                 
                 const articleData = {
                 title: await page.$eval(config.selectors.title, el => el.textContent),
