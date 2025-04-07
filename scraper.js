@@ -117,17 +117,25 @@ class MediumScraper {
         const maxRetries = 3;
         const initialDelay = 5000;
 
+        log.info('Starting to handle author page...');
+
         while (retryCount < maxRetries) {
             try {
+                log.debug(`Attempt ${retryCount + 1}/${maxRetries} to process author page`);
                 // Initial delay to let the page settle
                 await delay(initialDelay + (retryCount * 2000));
+                log.debug('Initial delay completed, checking page content...');
 
                 // Check for cloudflare or other protection pages
                 const pageContent = await page.content();
+                log.debug('Retrieved page content for security check');
                 if (pageContent.includes('security check') || pageContent.includes('cloudflare')) {
+                    log.warning('Security check or Cloudflare protection detected');
                     throw new Error('Security check detected');
                 }
+                log.debug('No security checks detected, proceeding with page load');
 
+                log.info('Waiting for page content to load...');
                 // Enhanced page loading detection with multiple fallbacks
                 await Promise.race([
                     Promise.all([
@@ -150,13 +158,19 @@ class MediumScraper {
                 ]);
 
                 // Additional verification for content loading
+                log.debug('Verifying article content presence...');
                 const articles = await page.$$(config.selectors.articleCard);
                 if (!articles || articles.length === 0) {
+                    log.warning('No articles found on the page after load');
                     throw new Error('No articles found after page load');
                 }
+                log.info(`Found ${articles.length} article cards on the page`);
 
-            await this.handleInfiniteScroll(page);
+            log.info('Starting infinite scroll process...');
+                await this.handleInfiniteScroll(page);
+                log.debug('Infinite scroll completed');
             
+            log.info('Extracting article URLs...');
             // Enhanced article URL extraction with validation
             const articleUrls = await page.$$eval(config.selectors.articleCard, articles => {
                 return articles.reduce((urls, article) => {
@@ -172,11 +186,13 @@ class MediumScraper {
             });
 
             if (articleUrls.length === 0) {
+                log.warning('No valid article URLs found after extraction');
                 throw new Error('No valid article URLs found');
             }
 
-            log.info(`Found ${articleUrls.length} articles to process`);
+            log.info(`Successfully extracted ${articleUrls.length} article URLs to process`);
 
+            log.info('Starting to enqueue article pages...');
             // Enqueue article pages with improved rate limiting
             for (const url of articleUrls) {
                 if (this.input.maxPosts > 0 && this.articles.length >= this.input.maxPosts) {
@@ -194,6 +210,7 @@ class MediumScraper {
             } catch (error) {
                 retryCount++;
                 log.warning(`Attempt ${retryCount}/${maxRetries} failed: ${error.message}`);
+                log.debug(`Error details: ${error.stack || error}`);
                 
                 if (retryCount >= maxRetries) {
                     log.error('Failed to process author page after all retries:', error);
@@ -213,14 +230,19 @@ class MediumScraper {
         const maxScrollAttempts = this.input.maxPosts > 0 ? Math.ceil(this.input.maxPosts / 10) : 30;
         const minScrollDelay = 3000; // Increased minimum delay between scrolls
 
+        log.info(`Starting infinite scroll process (max attempts: ${maxScrollAttempts})`);
+
         while (scrollAttempts < maxScrollAttempts) {
             try {
+                log.debug(`Scroll attempt ${scrollAttempts + 1}/${maxScrollAttempts}`);
                 // Check for rate limiting or blocking elements
                 const isBlocked = await page.$('div[role="alert"]');
                 if (isBlocked) {
+                    log.warning('Rate limiting or blocking detected during scroll');
                     throw new Error('Rate limited or blocked');
                 }
 
+                log.debug('Performing scroll operation...');
                 // Scroll with natural behavior
                 await page.evaluate(async () => {
                     const distance = Math.floor(Math.random() * 100) + 100;
@@ -229,21 +251,26 @@ class MediumScraper {
                     window.scrollTo(0, document.body.scrollHeight);
                 });
 
+                log.debug('Waiting for content to load after scroll...');
                 // Wait longer for content to load
                 await delay(minScrollDelay + Math.random() * 2000);
 
                 // Verify content loaded
                 const currentHeight = await page.evaluate(() => document.body.scrollHeight);
                 const articles = await page.$$(config.selectors.articleCard);
+                log.debug(`Current page height: ${currentHeight}, Previous height: ${previousHeight}`);
+                log.debug(`Found ${articles.length} articles after scroll`);
                 
                 if (currentHeight === previousHeight && articles.length > 0) {
+                    log.info('Possible end of content reached, performing final check...');
                     // Double check if we really reached the bottom
                     await delay(5000);
                     const finalCheck = await page.evaluate(() => document.body.scrollHeight);
                     if (finalCheck === currentHeight) {
+                        log.info('End of content confirmed, stopping infinite scroll');
                         break;
                     }
-                }
+                    log.debug('Content height changed after final check, continuing scroll');
 
                 previousHeight = currentHeight;
                 scrollAttempts++;
@@ -275,34 +302,47 @@ class MediumScraper {
         let retryCount = 0;
         const maxRetries = 5;
 
+        log.info('Starting to handle article page...', { url: request.url });
+
         while (retryCount < maxRetries) {
             try {
+                log.debug(`Attempt ${retryCount + 1}/${maxRetries} to process article page`);
                 // Check for rate limiting or blocking
                 const isBlocked = await page.$('div[role="alert"]');
                 if (isBlocked) {
+                    log.warning('Rate limiting or blocking detected');
                     throw new Error('Rate limited or blocked');
                 }
+                log.debug('No rate limiting detected, proceeding with content extraction');
 
+                log.info('Waiting for article content to load...');
                 // Wait for article content with increased timeout
                 await Promise.race([
-                    page.waitForSelector('article', { timeout: 60000, state: 'attached' }),
+                    page.waitForSelector('article', { timeout: 60000, state: 'attached' })
+                        .then(() => log.debug('Article content loaded successfully')),
                     page.waitForSelector('div[role="alert"]', { timeout: 60000 }).then(() => {
+                        log.warning('Page access denied or rate limited during content load');
                         throw new Error('Page access denied or rate limited');
                     })
                 ]);
 
+                log.debug('Waiting for complete page load...');
                 // Ensure all content is loaded
                 await page.waitForFunction(
                     () => document.readyState === 'complete' && 
                           !document.querySelector('.progressBar'),
                     { timeout: 30000 }
                 );
+                log.debug('Page fully loaded, checking premium status');
 
                 const isPremium = await page.$(config.selectors.premiumIndicator) !== null;
+                log.debug(`Article premium status: ${isPremium}`);
                 
+                log.info('Starting article data extraction...');
                 // Add random delay before extraction
                 await randomDelay(2000, 4000);
                 
+                log.debug('Extracting article metadata...');
                 const articleData = {
                 title: await page.$eval(config.selectors.title, el => el.textContent),
                 author: await page.$eval(config.selectors.author, el => el.textContent),
@@ -335,7 +375,9 @@ class MediumScraper {
                 articleData.comments = await this.extractComments(page);
             }
 
+                log.info('Article data extracted successfully');
                 this.articles.push(formatArticleData(articleData));
+                log.debug('Article added to collection');
                 break; // Success - exit retry loop
             } catch (error) {
                 retryCount++;
