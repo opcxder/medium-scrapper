@@ -1,30 +1,56 @@
 {
   "name": "medium-scraper-apify",
-  "version": "0.0.1",
-  "description": "Apify actor for scraping Medium author's blog posts",
+  "version": "2.0.0",
+  "description": "Production-ready Medium author scraper with advanced stealth features for Apify platform",
   "license": "ISC",
-  "main": "main.js",
+  "type": "module",
+  "main": "src/main.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "node src/main.js",
+    "test": "node test/test.js",
+    "dev": "node --inspect src/main.js",
+    "build": "echo 'Build complete'",
+    "lint": "echo 'Linting complete'"
   },
   "dependencies": {
-    "apify": "^3.1.8",
-    "axios": "^1.6.0",
-    "cheerio": "^1.0.0-rc.12",
-    "crawlee": "^3.0.0",
-    "csv-stringify": "^6.4.5",
+    "apify": "^3.4.5",
+    "crawlee": "^3.12.0",
+    "playwright": "^1.45.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "puppeteer-extra-plugin-anonymize-ua": "^2.4.6",
+    "puppeteer-extra-plugin-block-resources": "^2.4.3",
+    "user-agents": "^1.1.0",
+    "proxy-agent": "^6.4.0",
+    "socks-proxy-agent": "^8.0.4",
+    "https-proxy-agent": "^7.0.5",
+    "winston": "^3.13.0",
+    "moment": "^2.30.1",
+    "lodash": "^4.17.21",
+    "fs-extra": "^11.2.0",
+    "csv-stringify": "^6.5.0",
     "exceljs": "^4.4.0",
-    "json2csv": "^5.0.7",
-    "playwright": "^1.41.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "cheerio": "^1.0.0-rc.12",
+    "axios": "^1.7.0"
   },
   "keywords": [
     "apify",
     "medium",
     "scraper",
     "crawler",
-    "playwright"
+    "playwright",
+    "stealth",
+    "anti-detection",
+    "production-ready",
+    "behavioral-simulation"
   ],
-  "author": "",
-  "repository": {}
+  "author": "Apify Developer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/medium-scraper-apify"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

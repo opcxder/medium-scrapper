@@ -1,0 +1,498 @@
+import { createLogger } from '../utils/logger.js';
+import { MEDIUM_CONSTANTS, SELECTORS, ERROR_MESSAGES } from '../config/constants.js';
+import { cleanText, extractReadingTime, formatDate, calculateReadTime } from '../utils/contentProcessor.js';
+
+export class ArticleScraper {
+  constructor(page, input = {}, paywallInfo = {}) {
+    this.page = page;
+    this.input = input;
+    this.paywallInfo = paywallInfo;
+    this.logger = createLogger({ scraper: 'ArticleScraper', url: page.url() });
+  }
+
+  async scrapeArticle() {
+    try {
+      this.logger.info('Starting article scraping');
+      
+      // Wait for article page to load
+      await this.waitForArticlePage();
+      
+      // Extract basic article information
+      const articleInfo = await this.extractArticleInfo();
+      
+      if (!articleInfo) {
+        throw new Error('Failed to extract article information');
+      }
+      
+      // Extract content if requested
+      let content = null;
+      if (this.input.includeContent) {
+        content = await this.extractArticleContent();
+      }
+      
+      // Extract comments if requested
+      let comments = null;
+      if (this.input.includeComments) {
+        comments = await this.extractArticleComments();
+      }
+      
+      // Extract publication info if requested
+      let publication = null;
+      if (this.input.includePublication) {
+        publication = await this.extractPublicationInfo();
+      }
+      
+      return {
+        ...articleInfo,
+        content,
+        comments,
+        publication,
+        paywallInfo: this.paywallInfo,
+        scrapedAt: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      this.logger.error('Article scraping failed', error);
+      throw error;
+    }
+  }
+
+  async waitForArticlePage() {
+    try {
+      // Wait for article title to load
+      await this.page.waitForSelector(SELECTORS.ARTICLE.TITLE, { 
+        timeout: MEDIUM_CONSTANTS.PAGE_TIMEOUT,
+        state: 'visible'
+      });
+      
+      // Wait for article content to appear
+      await this.page.waitForSelector(SELECTORS.ARTICLE.CONTENT, { 
+        timeout: MEDIUM_CONSTANTS.PAGE_TIMEOUT,
+        state: 'visible'
+      });
+      
+      // Additional wait for dynamic content
+      await this.page.waitForTimeout(1000 + Math.random() * 1000);
+      
+    } catch (error) {
+      this.logger.warn('Timeout waiting for article page elements, continuing anyway');
+    }
+  }
+
+  async extractArticleInfo() {
+    try {
+      const articleInfo = await this.page.evaluate((selectors) => {
+        const title = document.querySelector(selectors.ARTICLE.TITLE)?.textContent?.trim() || '';
+        const subtitle = document.querySelector(selectors.ARTICLE.SUBTITLE)?.textContent?.trim() || '';
+        const author = document.querySelector(selectors.ARTICLE.AUTHOR)?.textContent?.trim() || '';
+        const authorUrl = document.querySelector(selectors.ARTICLE.AUTHOR)?.href || '';
+        const date = document.querySelector(selectors.ARTICLE.DATE)?.textContent?.trim() || '';
+        const readTime = document.querySelector(selectors.ARTICLE.READ_TIME)?.textContent?.trim() || '';
+        const claps = document.querySelector(selectors.ARTICLE.CLAPS)?.textContent?.trim() || '0';
+        const responses = document.querySelector(selectors.ARTICLE.RESPONSES)?.textContent?.trim() || '0';
+        
+        // Extract tags
+        const tags = Array.from(document.querySelectorAll(selectors.ARTICLE.TAGS))
+          .map(tag => tag.textContent?.trim())
+          .filter(Boolean);
+        
+        // Extract publication info
+        const publicationName = document.querySelector(selectors.ARTICLE.PUBLICATION)?.textContent?.trim() || '';
+        const publicationUrl = document.querySelector(selectors.ARTICLE.PUBLICATION)?.href || '';
+        
+        // Extract main image
+        const mainImage = document.querySelector(selectors.ARTICLE.MAIN_IMAGE)?.src || '';
+        
+        // Determine if premium content
+        const premiumIndicators = document.querySelectorAll(selectors.ARTICLE.PREMIUM_INDICATORS);
+        const isPremium = premiumIndicators.length > 0;
+        
+        // Extract URL
+        const url = window.location.href;
+        
+        // Extract series info if available
+        const seriesName = document.querySelector(selectors.ARTICLE.SERIES_NAME)?.textContent?.trim() || '';
+        const seriesUrl = document.querySelector(selectors.ARTICLE.SERIES_NAME)?.href || '';
+        const seriesPart = document.querySelector(selectors.ARTICLE.SERIES_PART)?.textContent?.trim() || '';
+        
+        return {
+          title,
+          subtitle,
+          author,
+          authorUrl,
+          date,
+          readTime,
+          claps: parseInt(claps.replace(/[^\d]/g, ''), 10) || 0,
+          responses: parseInt(responses.replace(/[^\d]/g, ''), 10) || 0,
+          tags,
+          publication: {
+            name: publicationName,
+            url: publicationUrl
+          },
+          mainImage,
+          isPremium,
+          url,
+          series: seriesName ? {
+            name: seriesName,
+            url: seriesUrl,
+            part: seriesPart
+          } : null
+        };
+      }, SELECTORS);
+      
+      // Clean and validate data
+      return {
+        ...articleInfo,
+        title: cleanText(articleInfo.title),
+        subtitle: cleanText(articleInfo.subtitle),
+        author: cleanText(articleInfo.author),
+        date: this.parseArticleDate(articleInfo.date),
+        readTime: extractReadingTime(articleInfo.readTime),
+        url: this.page.url()
+      };
+      
+    } catch (error) {
+      this.logger.error('Failed to extract article info', error);
+      throw error;
+    }
+  }
+
+  parseArticleDate(dateText) {
+    try {
+      if (!dateText) return null;
+      
+      // Handle various date formats
+      const datePatterns = [
+        /(\w+)\s+(\d{1,2}),\s+(\d{4})/, // "January 1, 2024"
+        /(\d{1,2})\s+(\w+)\s+(\d{4})/, // "1 January 2024"
+        /(\w+)\s+(\d{1,2})/, // "January 1"
+        /(\d{1,2})\/(\d{1,2})\/(\d{4})/, // "01/01/2024"
+        /(\d{4})-(\d{1,2})-(\d{1,2})/ // "2024-01-01"
+      ];
+      
+      for (const pattern of datePatterns) {
+        const match = dateText.match(pattern);
+        if (match) {
+          const dateStr = match[0];
+          const parsedDate = new Date(dateStr);
+          if (!isNaN(parsedDate.getTime())) {
+            return parsedDate.toISOString();
+          }
+        }
+      }
+      
+      // Try parsing as relative date (e.g., "2 days ago")
+      const relativeMatch = dateText.match(/(\d+)\s+(\w+)\s+ago/);
+      if (relativeMatch) {
+        const amount = parseInt(relativeMatch[1], 10);
+        const unit = relativeMatch[2];
+        const now = new Date();
+        
+        switch (unit) {
+          case 'second':
+          case 'seconds':
+            now.setSeconds(now.getSeconds() - amount);
+            break;
+          case 'minute':
+          case 'minutes':
+            now.setMinutes(now.getMinutes() - amount);
+            break;
+          case 'hour':
+          case 'hours':
+            now.setHours(now.getHours() - amount);
+            break;
+          case 'day':
+          case 'days':
+            now.setDate(now.getDate() - amount);
+            break;
+          case 'week':
+          case 'weeks':
+            now.setDate(now.getDate() - (amount * 7));
+            break;
+          case 'month':
+          case 'months':
+            now.setMonth(now.getMonth() - amount);
+            break;
+          case 'year':
+          case 'years':
+            now.setFullYear(now.getFullYear() - amount);
+            break;
+        }
+        
+        return now.toISOString();
+      }
+      
+      // Fallback: try parsing the entire text as a date
+      const fallbackDate = new Date(dateText);
+      if (!isNaN(fallbackDate.getTime())) {
+        return fallbackDate.toISOString();
+      }
+      
+      return null;
+      
+    } catch (error) {
+      this.logger.warn(`Failed to parse date: ${dateText}`, error);
+      return null;
+    }
+  }
+
+  async extractArticleContent() {
+    try {
+      // Scroll through the article to load all content
+      await this.scrollThroughArticle();
+      
+      const content = await this.page.evaluate((selectors) => {
+        const contentElements = document.querySelectorAll(selectors.ARTICLE.CONTENT);
+        const content = [];
+        
+        contentElements.forEach(element => {
+          try {
+            // Extract text content
+            const textContent = element.textContent?.trim() || '';
+            
+            // Extract headings
+            const headings = Array.from(element.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+              .map(h => ({
+                level: parseInt(h.tagName.substring(1), 10),
+                text: h.textContent?.trim() || ''
+              }));
+            
+            // Extract paragraphs
+            const paragraphs = Array.from(element.querySelectorAll('p'))
+              .map(p => p.textContent?.trim())
+              .filter(Boolean);
+            
+            // Extract lists
+            const lists = Array.from(element.querySelectorAll('ul, ol'))
+              .map(list => ({
+                type: list.tagName.toLowerCase(),
+                items: Array.from(list.querySelectorAll('li'))
+                  .map(li => li.textContent?.trim())
+                  .filter(Boolean)
+              }));
+            
+            // Extract quotes
+            const quotes = Array.from(element.querySelectorAll('blockquote'))
+              .map(blockquote => ({
+                text: blockquote.textContent?.trim() || '',
+                author: blockquote.querySelector('cite')?.textContent?.trim() || ''
+              }));
+            
+            // Extract code blocks
+            const codeBlocks = Array.from(element.querySelectorAll('pre, code'))
+              .map(code => ({
+                language: code.className?.match(/language-(\w+)/)?.[1] || 'unknown',
+                code: code.textContent?.trim() || ''
+              }));
+            
+            // Extract images
+            const images = Array.from(element.querySelectorAll('img'))
+              .map(img => ({
+                src: img.src || '',
+                alt: img.alt || '',
+                caption: img.getAttribute('data-caption') || ''
+              }));
+            
+            // Extract links
+            const links = Array.from(element.querySelectorAll('a[href]'))
+              .map(link => ({
+                text: link.textContent?.trim() || '',
+                url: link.href || '',
+                title: link.title || ''
+              }));
+            
+            content.push({
+              textContent,
+              headings,
+              paragraphs,
+              lists,
+              quotes,
+              codeBlocks,
+              images,
+              links,
+              wordCount: textContent.split(/\s+/).filter(word => word.length > 0).length
+            });
+            
+          } catch (error) {
+            console.error('Error extracting content element:', error);
+          }
+        });
+        
+        return content;
+      }, SELECTORS);
+      
+      // Flatten and clean content
+      const flattenedContent = this.flattenContent(content);
+      
+      this.logger.info(`Extracted article content with ${flattenedContent.wordCount} words`);
+      return flattenedContent;
+      
+    } catch (error) {
+      this.logger.error('Failed to extract article content', error);
+      return null;
+    }
+  }
+
+  async scrollThroughArticle() {
+    try {
+      // Simulate reading behavior
+      const scrollHeight = await this.page.evaluate(() => document.documentElement.scrollHeight);
+      const viewportHeight = await this.page.evaluate(() => window.innerHeight);
+      const scrollSteps = Math.ceil(scrollHeight / viewportHeight);
+      
+      for (let i = 0; i < scrollSteps; i++) {
+        const scrollPosition = i * viewportHeight;
+        
+        // Scroll to position
+        await this.page.evaluate((pos) => {
+          window.scrollTo(0, pos);
+        }, scrollPosition);
+        
+        // Random pause to simulate reading
+        const readingTime = 1000 + Math.random() * 2000;
+        await this.page.waitForTimeout(readingTime);
+        
+        // Random mouse movement
+        await this.page.mouse.move(
+          100 + Math.random() * 800,
+          100 + Math.random() * 600,
+          { steps: 5 + Math.floor(Math.random() * 10) }
+        );
+      }
+      
+      // Scroll back to top
+      await this.page.evaluate(() => {
+        window.scrollTo(0, 0);
+      });
+      
+    } catch (error) {
+      this.logger.warn('Failed to scroll through article', error);
+    }
+  }
+
+  flattenContent(contentArray) {
+    try {
+      const flattened = {
+        textContent: '',
+        headings: [],
+        paragraphs: [],
+        lists: [],
+        quotes: [],
+        codeBlocks: [],
+        images: [],
+        links: [],
+        wordCount: 0
+      };
+      
+      contentArray.forEach(content => {
+        flattened.textContent += (content.textContent || '') + ' ';
+        flattened.headings.push(...(content.headings || []));
+        flattened.paragraphs.push(...(content.paragraphs || []));
+        flattened.lists.push(...(content.lists || []));
+        flattened.quotes.push(...(content.quotes || []));
+        flattened.codeBlocks.push(...(content.codeBlocks || []));
+        flattened.images.push(...(content.images || []));
+        flattened.links.push(...(content.links || []));
+        flattened.wordCount += content.wordCount || 0;
+      });
+      
+      // Clean text content
+      flattened.textContent = cleanText(flattened.textContent);
+      flattened.wordCount = flattened.textContent.split(/\s+/).filter(word => word.length > 0).length;
+      
+      return flattened;
+      
+    } catch (error) {
+      this.logger.error('Failed to flatten content', error);
+      return contentArray[0] || { textContent: '', wordCount: 0 };
+    }
+  }
+
+  async extractArticleComments() {
+    try {
+      // Look for comments section
+      const hasComments = await this.page.evaluate((selectors) => {
+        return document.querySelector(selectors.ARTICLE.COMMENTS_SECTION) !== null;
+      }, SELECTORS);
+      
+      if (!hasComments) {
+        return [];
+      }
+      
+      // Scroll to comments section
+      await this.page.evaluate((selectors) => {
+        const commentsSection = document.querySelector(selectors.ARTICLE.COMMENTS_SECTION);
+        if (commentsSection) {
+          commentsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, SELECTORS);
+      
+      await this.page.waitForTimeout(2000); // Wait for comments to load
+      
+      const comments = await this.page.evaluate((selectors) => {
+        const comments = [];
+        const commentElements = document.querySelectorAll(selectors.ARTICLE.COMMENT);
+        
+        commentElements.forEach((element, index) => {
+          try {
+            const author = element.querySelector(selectors.ARTICLE.COMMENT_AUTHOR)?.textContent?.trim() || '';
+            const authorUrl = element.querySelector(selectors.ARTICLE.COMMENT_AUTHOR)?.href || '';
+            const content = element.querySelector(selectors.ARTICLE.COMMENT_CONTENT)?.textContent?.trim() || '';
+            const date = element.querySelector(selectors.ARTICLE.COMMENT_DATE)?.textContent?.trim() || '';
+            const claps = element.querySelector(selectors.ARTICLE.COMMENT_CLAPS)?.textContent?.trim() || '0';
+            
+            comments.push({
+              author,
+              authorUrl,
+              content,
+              date,
+              claps: parseInt(claps.replace(/[^\d]/g, ''), 10) || 0,
+              index
+            });
+            
+          } catch (error) {
+            console.error('Error extracting comment:', error);
+          }
+        });
+        
+        return comments;
+      }, SELECTORS);
+      
+      this.logger.info(`Extracted ${comments.length} comments from article`);
+      return comments;
+      
+    } catch (error) {
+      this.logger.warn('Failed to extract article comments', error);
+      return [];
+    }
+  }
+
+  async extractPublicationInfo() {
+    try {
+      const publicationInfo = await this.page.evaluate((selectors) => {
+        const publication = document.querySelector(selectors.ARTICLE.PUBLICATION);
+        if (!publication) return null;
+        
+        const name = publication.textContent?.trim() || '';
+        const url = publication.href || '';
+        const logo = document.querySelector(selectors.ARTICLE.PUBLICATION_LOGO)?.src || '';
+        const description = document.querySelector(selectors.ARTICLE.PUBLICATION_DESCRIPTION)?.textContent?.trim() || '';
+        const followers = document.querySelector(selectors.ARTICLE.PUBLICATION_FOLLOWERS)?.textContent?.trim() || '0';
+        
+        return {
+          name,
+          url,
+          logo,
+          description,
+          followers: parseInt(followers.replace(/[^\d]/g, ''), 10) || 0
+        };
+      }, SELECTORS);
+      
+      return publicationInfo;
+      
+    } catch (error) {
+      this.logger.warn('Failed to extract publication info', error);
+      return null;
+    }
+  }
+}
