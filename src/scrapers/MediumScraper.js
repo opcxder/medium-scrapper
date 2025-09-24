@@ -119,24 +119,46 @@ export class MediumScraper {
       ignoreHTTPSErrors: true
     };
 
+    // Import playwright dynamically for ES modules
+    const { chromium } = await import('playwright');
+    
+    // Store reference to this scraper instance for use in handlers
+    const scraperInstance = this;
+    
+    // Bind the requestHandler to preserve correct 'this' context
+    const boundRequestHandler = this.handleRequest.bind(this);
+    
     this.crawler = new PlaywrightCrawler({
       launchContext: {
-        launcher: require('playwright').chromium,
+        launcher: chromium,
         launchOptions
       },
       
       async requestHandler({ request, page, enqueueLinks, log }) {
         try {
-          await this.handleRequest(request, page, enqueueLinks, log);
+          await boundRequestHandler(request, page, enqueueLinks, log);
         } catch (error) {
-          this.logger.error(`Request handler error for ${request.url}`, error);
+          scraperInstance.logger.error(`Request handler error for ${request.url}`, error);
           throw error;
         }
       },
 
-      async failedRequestHandler({ request, error }) {
-        this.logger.error(`Request failed: ${request.url}`, error);
-        this.stats.errors++;
+      failedRequestHandler: async ({ request, error }) => {
+        try {
+          // Use the stored scraper instance reference
+          if (scraperInstance && scraperInstance.logger) {
+            scraperInstance.logger.error(`Request failed: ${request.url}`, error);
+            scraperInstance.logger.error(`Error details: ${error.message || error}`);
+          } else {
+            console.error(`Request failed: ${request.url}`, error);
+            console.error(`Error details: ${error.message || error}`);
+          }
+          if (scraperInstance && scraperInstance.stats) {
+            scraperInstance.stats.errors++;
+          }
+        } catch (handlerError) {
+          console.error('Error in failedRequestHandler:', handlerError);
+        }
       },
 
       maxRequestsPerMinute: this.input.requestsPerSecond * 60,
@@ -172,9 +194,19 @@ export class MediumScraper {
   async handleRequest(request, page, enqueueLinks, log) {
     const url = request.url;
     
+    this.logger.info(`Handling request: ${url}`);
+    
     try {
-      // Wait for page to load
-      await page.waitForLoadState('networkidle', { timeout: MEDIUM_CONSTANTS.PAGE_TIMEOUT });
+      // Wait for page to load with extended timeout for Medium pages
+      try {
+        await page.waitForLoadState('domcontentloaded', { timeout: MEDIUM_CONSTANTS.PAGE_TIMEOUT });
+        // Additional wait for dynamic content
+        await page.waitForTimeout(2000 + Math.random() * 1000);
+        this.logger.info(`Page loaded successfully: ${url}`);
+      } catch (loadError) {
+        this.logger.warn(`Page load timeout for ${url}, continuing anyway`);
+        // Continue even if page doesn't fully load
+      }
       
       // Simulate human behavior
       await this.stealthHelper.simulateHumanBehavior(page, {
@@ -224,7 +256,9 @@ export class MediumScraper {
   async handleAuthorPage(page, url) {
     try {
       const authorScraper = new AuthorScraper(page, this.input);
+      console.log('DEBUG: About to call authorScraper.scrapeAuthor()');
       const authorData = await authorScraper.scrapeAuthor();
+      console.log('DEBUG: authorScraper.scrapeAuthor() completed, authorData:', JSON.stringify(authorData, null, 2));
       
       if (authorData) {
         this.logger.logAuthorScraped(authorData);

@@ -1,0 +1,103 @@
+{
+  "author": {
+    "name": "Medium",
+    "bio": "",
+    "followers": 15,
+    "following": 32,
+    "avatar": "",
+    "username": "",
+    "socialLinks": [],
+    "publications": [],
+    "url": "https://medium.com/@medium",
+    "articles": [
+      {
+        "title": "The Medium Blog",
+        "subtitle": "Published inThe Medium BlogUpdating Our Rules — June 2023This month, we are updating our Rules. As the world evolves, so do the ways in which people use Medium. To accommodate this, we regularly…Jun 28, 2023A clap icon4.99KA response icon55Jun 28, 2023A clap icon4.99KA response icon55",
+        "url": "https://medium.com/blog?source=user_profile_page---------0-------------504c7870fdb6----------------------",
+        "date": "",
+        "readTime": "",
+        "claps": 0,
+        "responses": 0,
+        "tags": [],
+        "publication": {
+          "name": "",
+          "url": ""
+        },
+        "image": "",
+        "isPremium": false,
+        "index": 1,
+        "scrapedAt": "2025-09-24T16:00:01.140Z"
+      },
+      {
+        "title": "Updating Our Rules — June 2023",
+        "subtitle": "Published inThe Medium BlogUpdating Our Rules — June 2023This month, we are updating our Rules. As the world evolves, so do the ways in which people use Medium. To accommodate this, we regularly…Jun 28, 2023A clap icon4.99KA response icon55Jun 28, 2023A clap icon4.99KA response icon55",
+        "url": "https://medium.com/blog/updating-our-rules-june-2023-62edea66ffa4?source=user_profile_page---------0-------------504c7870fdb6----------------------",
+        "date": "",
+        "readTime": "",
+        "claps": 0,
+        "responses": 0,
+        "tags": [],
+        "publication": {
+          "name": "",
+          "url": ""
+        },
+        "image": "",
+        "isPremium": false,
+        "index": 2,
+        "scrapedAt": "2025-09-24T16:00:01.140Z"
+      },
+      {
+        "title": "A clap icon4.99KA response icon55",
+        "subtitle": "Published inThe Medium BlogUpdating Our Rules — June 2023This month, we are updating our Rules. As the world evolves, so do the ways in which people use Medium. To accommodate this, we regularly…Jun 28, 2023A clap icon4.99KA response icon55Jun 28, 2023A clap icon4.99KA response icon55",
+        "url": "https://medium.com/blog/updating-our-rules-june-2023-62edea66ffa4?source=user_profile_page---------0-------------504c7870fdb6----------------------",
+        "date": "",
+        "readTime": "",
+        "claps": 0,
+        "responses": 0,
+        "tags": [],
+        "publication": {
+          "name": "",
+          "url": ""
+        },
+        "image": "",
+        "isPremium": false,
+        "index": 3,
+        "scrapedAt": "2025-09-24T16:00:01.140Z"
+      }
+    ],
+    "totalArticles": 40,
+    "filteredCount": 3,
+    "scrapedAt": "2025-09-24T16:00:01.157Z"
+  },
+  "articles": [],
+  "stats": {
+    "totalArticles": 0,
+    "successfulExtractions": 0,
+    "paywallHits": 0,
+    "errors": 0,
+    "startTime": 1758729527866,
+    "sessionDuration": 102044,
+    "paywallRate": 0,
+    "successRate": 0
+  },
+  "proxyStats": {
+    "totalRequests": 0,
+    "failedRequests": 0,
+    "successfulRequests": 0,
+    "proxyChanges": 0,
+    "successRate": 0,
+    "availableProxies": 0,
+    "totalProxies": 0
+  },
+  "paywallStats": {
+    "totalArticles": 0,
+    "premiumArticles": 0,
+    "memberOnlyArticles": 0,
+    "paywallHits": 0,
+    "bypassAttempts": 0,
+    "successfulBypasses": 0,
+    "paywallRate": 0,
+    "bypassSuccessRate": 0
+  },
+  "scrapedAt": "2025-09-24T16:00:29.910Z"
+}

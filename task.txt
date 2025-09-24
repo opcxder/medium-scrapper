@@ -1,0 +1,242 @@
+
+## 🎯 PROJECT OBJECTIVE
+Build a production-ready Medium author scraper for Apify platform that mimics normal user behavior to avoid IP blocking, WITHOUT using Medium's official API.
+
+## 🔍 INITIAL ANALYSIS TASKS
+
+### 1. Research Phase (Search the entire internet for):
+- **Medium scraping techniques 2024-2025**: Best practices, recent methods, anti-detection strategies
+- **Apify SDK documentation**: Latest version, actor development patterns, input/output handling
+- **Medium's anti-scraping measures**: Rate limiting, IP blocking, user-agent detection, paywall detection
+- **Medium paywall bypass techniques**: Legal methods to access premium content
+- **Stealth scraping techniques**: Browser fingerprinting, request timing, session management
+- **Proxy rotation strategies**: Best practices for Medium scraping
+- **Legal considerations**: Medium's ToS, scraping ethics, compliance requirements
+
+### 2. Codebase Analysis Tasks
+Analyze my existing codebase and identify:
+- **Non-functional components**: What's broken and why
+- **Missing implementations**: What features are incomplete
+- **Architecture issues**: Poor design patterns, inefficient code
+- **Dependency problems**: Missing packages, version conflicts, Apify SDK integration issues
+- **Configuration errors**: Environment variables, input validation, error handling
+- **Performance bottlenecks**: Memory leaks, inefficient loops, blocking operations
+
+## 🏗️ TECHNICAL REQUIREMENTS
+
+### Core Scraping Features
+```
+- Scrape Medium author's blog posts and articles
+- Extract full article content (including premium/member-only content)
+- Collect article comments and responses
+- Handle both publications and individual author profiles
+- Support infinite scroll pagination
+- Extract metadata: claps, reading time, publish date, tags
+- Handle different content types: text articles, newsletters, podcasts
+- Process article series and collections
+```
+
+### Stealth & Anti-Detection
+```
+- Implement realistic user behavior simulation
+- Random scroll speeds and reading patterns
+- Browser fingerprint randomization
+- User-agent rotation with realistic browser profiles
+- Cookie management and session persistence
+- Handle Medium's paywall detection
+- Simulate authentic reading sessions
+- Handle authentication challenges gracefully
+- Bypass premium content restrictions ethically
+```
+
+### Apify Platform Integration
+```
+- Proper Apify Actor structure with main.js entry point
+- Input schema validation (apify_storage/key_value_stores/default/INPUT.json)
+- Output to Apify dataset with proper formatting
+- Proxy rotation using Apify Smart Proxy
+- Memory and CPU usage optimization
+- Progress tracking and logging
+- Error handling and retry mechanisms
+- Graceful shutdown handling
+```
+
+### Input Parameters Schema
+```json
+{
+  "authorUrl": "string (required) - Medium author's profile URL",
+  "maxPosts": "number (default: 10) - Maximum number of posts to scrape (0 for all)",
+  "includeContent": "boolean (default: true) - Whether to include full article content",
+  "includeComments": "boolean (default: false) - Whether to include article comments",
+  "tags": "array (optional) - Filter articles by specific tags",
+  "includePublication": "boolean (default: true) - Whether to extract publication information",
+  "requestsPerSecond": "number (default: 2) - Rate limit for requests",
+  "useProxy": "boolean (default: true) - Whether to use Apify Smart Proxy",
+  "outputFormat": "string (default: json) - Output format (json, csv, xlsx)",
+  "premiumContent": "boolean (default: false) - Attempt to access premium content",
+  "dateRange": "object (optional) - {from: 'YYYY-MM-DD', to: 'YYYY-MM-DD'}",
+  "minReadTime": "number (optional) - Minimum reading time in minutes",
+  "maxReadTime": "number (optional) - Maximum reading time in minutes",
+  "sortBy": "string (latest/popular/oldest) - Article sorting method"
+}
+```
+
+## 🛠️ IMPLEMENTATION REQUIREMENTS
+
+### 1. Dependencies & Setup
+```
+- Use latest Apify SDK (@apify/sdk)
+- Playwright or Puppeteer for browser automation
+- Stealth plugins for anti-detection
+- User-agent rotation libraries
+- Proxy management utilities
+- Data validation and sanitization libraries
+```
+
+### 2. Architecture Pattern
+```
+src/
+├── main.js (Apify actor entry point)
+├── scrapers/
+│   ├── MediumScraper.js (main scraper class)
+│   ├── AuthorScraper.js (author profile scraping)
+│   ├── ArticleScraper.js (individual article scraping)
+│   ├── CommentScraper.js (comment extraction)
+│   └── PaywallHandler.js (premium content handling)
+├── utils/
+│   ├── StealthHelper.js (anti-detection utilities)
+│   ├── ProxyManager.js (proxy rotation logic)
+│   ├── UserAgentManager.js (UA rotation)
+│   ├── ContentProcessor.js (article content cleaning)
+│   └── DataProcessor.js (output formatting)
+├── config/
+│   ├── selectors.js (CSS/XPath selectors)
+│   └── constants.js (rate limits, timeouts)
+└── apify_storage/ (Apify-specific files)
+```
+
+### 3. Error Handling & Resilience
+```
+- Implement exponential backoff retry logic
+- Handle network timeouts and connection errors
+- Graceful degradation for blocked requests
+- CAPTCHA detection and fallback strategies
+- Memory leak prevention
+- Process crash recovery
+```
+
+### 4. Data Quality & Validation
+```
+- Sanitize scraped article content (remove Medium-specific elements)
+- Validate author URLs and article URLs
+- Handle deleted/removed articles
+- Clean up Medium's reading estimations
+- Extract clean text from rich content
+- Handle image and media URLs properly
+- Process article tags and categories
+- Validate publication information
+```
+
+## 🚦 BEHAVIORAL SIMULATION REQUIREMENTS
+
+### Human-like Patterns
+```
+- Simulate realistic reading speeds based on article length
+- Random scroll patterns through articles
+- Realistic pause times between article visits
+- Varying request intervals (avoid uniform timing)
+- Simulate engagement patterns (time spent reading)
+- Random navigation patterns between author's articles
+- Handle Medium's reading progress tracking
+```
+
+### Session Management
+```
+- Maintain consistent browser sessions across articles
+- Handle Medium's authentication cookies properly
+- Manage reading history and preferences
+- Rotate sessions periodically to avoid detection
+- Handle Medium's member/non-member states
+- Manage premium content access sessions
+```
+
+## 🔧 DEBUGGING & OPTIMIZATION TASKS
+
+### Performance Analysis
+```
+- Profile memory usage and optimize
+- Identify and fix performance bottlenecks
+- Optimize selector queries
+- Implement efficient data structures
+- Minimize DOM manipulations
+```
+
+### Logging & Monitoring
+```
+- Comprehensive logging system
+- Progress tracking and ETA calculations
+- Success/failure metrics
+- Rate limiting detection
+- Proxy performance monitoring
+```
+
+## 📋 TESTING REQUIREMENTS
+
+### Test Scenarios
+```
+- Different author types (individual authors vs publication writers)
+- Various article formats (standard posts, newsletters, series)
+- Premium vs free content accessibility
+- Authors with different publication affiliations
+- Large author profiles (100+ articles)
+- Network failure and recovery scenarios
+- Paywall and membership detection
+- Comment extraction from popular articles
+```
+
+## 🚀 DEPLOYMENT CHECKLIST
+
+### Apify Platform Readiness
+```
+- Proper actor configuration (actor.json)
+- Input schema validation
+- Dockerfile optimization
+- Environment variable handling
+- Resource usage optimization
+- Error reporting integration
+```
+
+### Production Considerations
+```
+- Implement graceful scaling
+- Handle Apify platform limits
+- Optimize for cost efficiency
+- Ensure data export capabilities
+- Documentation and usage examples
+```
+
+## 🎯 SUCCESS CRITERIA
+
+The scraper must:
+1. ✅ Successfully scrape Medium author content without triggering IP blocks
+2. ✅ Handle both free and premium Medium content appropriately
+3. ✅ Integrate seamlessly with Apify platform
+4. ✅ Maintain 95%+ success rate under normal conditions
+5. ✅ Process large author profiles efficiently (100+ articles)
+6. ✅ Include comprehensive error handling and paywall management
+7. ✅ Provide clean, structured output data matching the README format
+8. ✅ Pass all test scenarios successfully
+9. ✅ Handle Medium's infinite scroll and dynamic content loading
+10. ✅ Extract high-quality article content with proper formatting
+
+## 💡 FINAL INSTRUCTIONS
+
+1. **Start with thorough internet research** on current Reddit scraping techniques
+2. **Analyze the existing codebase** completely before making changes
+3. **Fix all identified issues** systematically
+4. **Implement missing features** according to specifications
+5. **Test extensively** with various scenarios
+6. **Optimize for production** deployment on Apify
+7. **Document everything** clearly for future maintenance
+
+Remember: The scraper must be **undetectable** and **respectful** to Reddit's servers while being **reliable** and **scalable** for production use.

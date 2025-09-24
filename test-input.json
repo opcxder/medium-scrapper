@@ -1,0 +1,12 @@
+{
+  "authorUrl": "https://medium.com/@techcrunch",
+  "maxPosts": 5,
+  "includeContent": true,
+  "includeComments": false,
+  "includePublication": true,
+  "requestsPerSecond": 1,
+  "useProxy": true,
+  "outputFormat": "json",
+  "premiumContent": false,
+  "sortBy": "latest"
+}

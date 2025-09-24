@@ -21,9 +21,9 @@ export const MEDIUM_CONSTANTS = {
   SCROLL_INCREMENT: 500,
   
   // Timeouts
-  PAGE_TIMEOUT: 30000,
-  NAVIGATION_TIMEOUT: 60000,
-  ELEMENT_TIMEOUT: 10000,
+  PAGE_TIMEOUT: 45000,
+  NAVIGATION_TIMEOUT: 90000,
+  ELEMENT_TIMEOUT: 15000,
   
   // Content processing
   MIN_READ_TIME: 30,
@@ -38,10 +38,29 @@ export const MEDIUM_CONSTANTS = {
 
 export const SELECTORS = {
   // Author page selectors
-  AUTHOR_NAME: 'h1[data-testid="authorName"], h1[data-testid="publicationName"]',
-  AUTHOR_BIO: 'p[data-testid="authorBio"], div[data-testid="publicationDescription"]',
-  AUTHOR_IMAGE: 'img[data-testid="authorImage"], img[data-testid="publicationImage"]',
-  FOLLOWERS_COUNT: 'button[data-testid="followersCount"], a[data-testid="followersLink"]',
+  AUTHOR: {
+    NAME: 'h1[data-testid="authorName"], h1[data-testid="publicationName"], h1[aria-label*="profile"], .pw-author-name',
+    BIO: 'p[data-testid="authorBio"], div[data-testid="publicationDescription"], .pw-bio',
+    AVATAR: 'img[data-testid="authorImage"], img[data-testid="publicationImage"], img[alt*="profile"], .pw-author-image',
+    FOLLOWERS: 'button[data-testid="followersCount"], a[data-testid="followersLink"], a[href*="/followers"], .pw-followers-count',
+    FOLLOWING: 'button[data-testid="followingCount"], a[data-testid="followingLink"], a[href*="/following"], .pw-following-count',
+    USERNAME: 'span[data-testid="username"], div[data-testid="authorUsername"], .pw-username',
+    SOCIAL_LINKS: 'a[data-testid="socialLink"], div[data-testid="socialLinks"] a, a[rel="noopener"]',
+    PUBLICATIONS: 'div[data-testid="publication"] a[data-testid="publicationLink"], a[href*="/publications"]',
+    PUBLICATION_ROLE: 'span[data-testid="publicationRole"], .pw-publication-role',
+    ARTICLES_CONTAINER: 'div[data-testid="articlesContainer"], div[data-testid="postsContainer"], main[role="main"], .pw-articles-container',
+    ARTICLE_LINKS: 'article a[href*="/@"], div[data-testid="articleLink"] a, a[data-testid="postLink"]',
+    ARTICLE_TITLE: 'h2[data-testid="articleTitle"], h3[data-testid="postTitle"], h1[data-testid="postTitle"], .pw-post-title',
+    ARTICLE_SUBTITLE: 'p[data-testid="articleSubtitle"], p[data-testid="postSubtitle"], .pw-post-subtitle',
+    ARTICLE_DATE: 'time[data-testid="articleDate"], span[data-testid="publishDate"], time[datetime], .pw-post-date',
+    ARTICLE_READ_TIME: 'span[data-testid="readingTime"], span[data-testid="readTime"], .pw-reading-time',
+    ARTICLE_CLAPS: 'button[data-testid="clapButton"], div[data-testid="clapCount"], button[aria-label*="clap"], .pw-clap-count',
+    ARTICLE_RESPONSES: 'a[data-testid="responsesLink"], button[data-testid="responsesButton"], a[href*="/responses"], .pw-response-count',
+    ARTICLE_TAGS: 'a[data-testid="tagLink"], div[data-testid="articleTags"] a, a[href*="/tag/"], .pw-post-tags a',
+    ARTICLE_PUBLICATION: 'a[data-testid="publicationName"], div[data-testid="publicationTitle"], a[href*="/publication/"]',
+    ARTICLE_IMAGE: 'img[data-testid="articleImage"], img[data-testid="postImage"], img[alt*="post"], .pw-post-image',
+    PREMIUM_INDICATORS: 'span[data-testid="memberOnlyBadge"], div[data-testid="premiumBadge"], span[aria-label*="member"], .pw-premium-badge'
+  },
   
   // Article selectors
   ARTICLE_LINK: 'article a[href*="/@"], div[data-testid="articleLink"] a',

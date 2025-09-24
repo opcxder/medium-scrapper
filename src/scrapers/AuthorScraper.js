@@ -120,14 +120,42 @@ export class AuthorScraper {
 
   async extractAuthorArticles() {
     try {
+      this.logger.info('Starting to extract author articles');
+      
+      // First, let's see what elements are actually on the page
+      const pageContent = await this.page.evaluate(() => {
+        return {
+          title: document.title,
+          url: window.location.href,
+          articleCount: document.querySelectorAll('article').length,
+          linkCount: document.querySelectorAll('a[href*="/@"]').length,
+          postCount: document.querySelectorAll('[data-testid*="post"], [data-testid*="article"]').length,
+          allLinks: Array.from(document.querySelectorAll('a')).slice(0, 10).map(a => ({
+            href: a.href,
+            text: a.textContent?.trim().substring(0, 50)
+          })),
+          // Add more detailed analysis
+          articleElements: document.querySelectorAll('article').length,
+          h2Elements: document.querySelectorAll('h2').length,
+          h3Elements: document.querySelectorAll('h3').length,
+          linksWithAt: document.querySelectorAll('a[href*="/@"]').length,
+          dataTestIdElements: document.querySelectorAll('[data-testid]').length
+        };
+      });
+      
+      this.logger.info('Page content analysis:', pageContent);
+      
       const articles = [];
       let hasMore = true;
       let scrollCount = 0;
-      const maxScrolls = 50; // Prevent infinite scrolling
+      const maxScrolls = 10; // Reduced for testing
       
       while (hasMore && scrollCount < maxScrolls && articles.length < this.input.maxPosts) {
+        this.logger.info(`Scroll ${scrollCount + 1}: Looking for articles...`);
+        
         // Extract current articles
         const currentArticles = await this.extractArticlesFromCurrentView();
+        this.logger.info(`Found ${currentArticles.length} articles in current view`);
         
         // Add new articles
         const newArticles = currentArticles.filter(article => 
@@ -135,6 +163,7 @@ export class AuthorScraper {
         );
         
         articles.push(...newArticles);
+        this.logger.info(`Total articles so far: ${articles.length}`);
         
         // Check if we have enough articles
         if (articles.length >= this.input.maxPosts) {
@@ -160,35 +189,69 @@ export class AuthorScraper {
 
   async extractArticlesFromCurrentView() {
     try {
-      return await this.page.evaluate((selectors, input) => {
+      const result = await this.page.evaluate((selectors) => {
         const articles = [];
-        const articleElements = document.querySelectorAll(selectors.AUTHOR.ARTICLE_LINKS);
         
+        // Let's check what elements are actually on the page
+        const pageAnalysis = {
+          articleElements: document.querySelectorAll('article').length,
+          linksWithAt: document.querySelectorAll('a[href*="/@"]').length,
+          h2Elements: document.querySelectorAll('h2').length,
+          h3Elements: document.querySelectorAll('h3').length,
+          dataTestIdElements: document.querySelectorAll('[data-testid]').length,
+          allLinks: Array.from(document.querySelectorAll('a')).slice(0, 5).map(a => ({
+            href: a.href,
+            text: a.textContent?.trim().substring(0, 30)
+          }))
+        };
+        
+        // Try different approaches to find article elements
+        let articleElements = document.querySelectorAll(selectors.AUTHOR.ARTICLE_LINKS);
+        
+        // If no elements found, try alternative selectors
+        if (articleElements.length === 0) {
+          articleElements = document.querySelectorAll('article a');
+        }
+        
+        if (articleElements.length === 0) {
+          articleElements = document.querySelectorAll('article h2 a, article h3 a');
+        }
+        
+        if (articleElements.length === 0) {
+          articleElements = document.querySelectorAll('[data-testid*="post"] a, [data-testid*="article"] a');
+        }
+        
+        // Process each article element
         articleElements.forEach((element, index) => {
           try {
-            const title = element.querySelector(selectors.AUTHOR.ARTICLE_TITLE)?.textContent?.trim() || '';
-            const subtitle = element.querySelector(selectors.AUTHOR.ARTICLE_SUBTITLE)?.textContent?.trim() || '';
+            // Try multiple approaches to find title
+            let title = '';
+            const titleSelectors = [
+              selectors.AUTHOR.ARTICLE_TITLE,
+              'h2', 'h3', 'h1',
+              '[data-testid*="title"]',
+              '.pw-post-title'
+            ];
+            
+            for (const selector of titleSelectors) {
+              const titleElement = element.querySelector(selector);
+              if (titleElement) {
+                title = titleElement.textContent?.trim() || '';
+                break;
+              }
+            }
+            
+            // If no title found in element, check if the element itself is a title link
+            if (!title && element.tagName === 'A' && element.textContent?.trim()) {
+              title = element.textContent.trim();
+            }
+            
             const url = element.href || '';
-            const date = element.querySelector(selectors.AUTHOR.ARTICLE_DATE)?.textContent?.trim() || '';
-            const readTime = element.querySelector(selectors.AUTHOR.ARTICLE_READ_TIME)?.textContent?.trim() || '';
-            const claps = element.querySelector(selectors.AUTHOR.ARTICLE_CLAPS)?.textContent?.trim() || '0';
-            const responses = element.querySelector(selectors.AUTHOR.ARTICLE_RESPONSES)?.textContent?.trim() || '0';
             
-            // Extract tags
-            const tags = Array.from(element.querySelectorAll(selectors.AUTHOR.ARTICLE_TAGS))
-              .map(tag => tag.textContent?.trim())
-              .filter(Boolean);
-            
-            // Extract publication info
-            const publication = element.querySelector(selectors.AUTHOR.ARTICLE_PUBLICATION)?.textContent?.trim() || '';
-            const publicationUrl = element.querySelector(selectors.AUTHOR.ARTICLE_PUBLICATION)?.href || '';
-            
-            // Extract image
-            const image = element.querySelector(selectors.AUTHOR.ARTICLE_IMAGE)?.src || '';
-            
-            // Determine if premium content
-            const premiumIndicators = element.querySelectorAll(selectors.AUTHOR.PREMIUM_INDICATORS);
-            const isPremium = premiumIndicators.length > 0;
+            // Try to find other elements more broadly
+            const subtitle = element.closest('article')?.querySelector('p, div:not([data-testid])')?.textContent?.trim() || '';
+            const date = element.closest('article')?.querySelector('time, [data-testid*="date"]')?.textContent?.trim() || '';
+            const readTime = element.closest('article')?.querySelector('[data-testid*="time"], [data-testid*="read"]')?.textContent?.trim() || '';
             
             if (title && url) {
               articles.push({
@@ -197,26 +260,34 @@ export class AuthorScraper {
                 url,
                 date,
                 readTime,
-                claps: parseInt(claps.replace(/[^\d]/g, ''), 10) || 0,
-                responses: parseInt(responses.replace(/[^\d]/g, ''), 10) || 0,
-                tags,
+                claps: 0,
+                responses: 0,
+                tags: [],
                 publication: {
-                  name: publication,
-                  url: publicationUrl
+                  name: '',
+                  url: ''
                 },
-                image,
-                isPremium,
+                image: '',
+                isPremium: false,
                 index,
                 scrapedAt: new Date().toISOString()
               });
             }
           } catch (error) {
-            console.error('Error extracting article:', error);
+            // Silently continue if individual article extraction fails
           }
         });
         
-        return articles;
-      }, SELECTORS, this.input);
+        // Return both the analysis and the articles found
+        return {
+          pageAnalysis,
+          foundElements: articleElements.length,
+          articles: articles
+        };
+        
+      }, SELECTORS);
+      
+      return result.articles;
       
     } catch (error) {
       this.logger.error('Failed to extract articles from current view', error);
