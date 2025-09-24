@@ -134,8 +134,16 @@ export class MediumScraper {
         launchOptions
       },
       
+      // Increase timeouts and add retry logic
+      requestHandlerTimeoutSecs: 300, // Increase from default 60s
+      navigationTimeoutSecs: 120,     // Increase navigation timeout from 60s
+      maxRequestRetries: 5,           // Add more retries
+      
       async requestHandler({ request, page, enqueueLinks, log }) {
         try {
+          // Set longer timeout for this specific request
+          page.setDefaultTimeout(120000);
+          
           await boundRequestHandler(request, page, enqueueLinks, log);
         } catch (error) {
           scraperInstance.logger.error(`Request handler error for ${request.url}`, error);
@@ -163,7 +171,6 @@ export class MediumScraper {
 
       maxRequestsPerMinute: this.input.requestsPerSecond * 60,
       maxConcurrency: 1, // Single concurrent request for stealth
-      maxRequestRetries: MEDIUM_CONSTANTS.MAX_RETRIES,
       retryOnBlocked: true,
       
       preNavigationHooks: [
@@ -196,52 +203,77 @@ export class MediumScraper {
     
     this.logger.info(`Handling request: ${url}`);
     
-    try {
-      // Wait for page to load with extended timeout for Medium pages
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
       try {
-        await page.waitForLoadState('domcontentloaded', { timeout: MEDIUM_CONSTANTS.PAGE_TIMEOUT });
-        // Additional wait for dynamic content
-        await page.waitForTimeout(2000 + Math.random() * 1000);
-        this.logger.info(`Page loaded successfully: ${url}`);
-      } catch (loadError) {
-        this.logger.warn(`Page load timeout for ${url}, continuing anyway`);
-        // Continue even if page doesn't fully load
-      }
-      
-      // Simulate human behavior
-      await this.stealthHelper.simulateHumanBehavior(page, {
-        readingTime: 2000 + Math.random() * 3000,
-        scrollCount: 1 + Math.floor(Math.random() * 3),
-        mouseMovement: true,
-        randomPauses: true
-      });
+        // Check if page is still valid
+        if (page.isClosed()) {
+          this.logger.warning('Page is closed, creating new page');
+          // Request a new page or handle gracefully
+          return;
+        }
+        
+        // Wait for page to load with extended timeout for Medium pages
+        try {
+          await page.waitForLoadState('domcontentloaded', { timeout: MEDIUM_CONSTANTS.PAGE_TIMEOUT });
+          // Additional wait for dynamic content
+          await page.waitForTimeout(2000 + Math.random() * 1000);
+          this.logger.info(`Page loaded successfully: ${url}`);
+        } catch (loadError) {
+          this.logger.warn(`Page load timeout for ${url}, continuing anyway`);
+          // Continue even if page doesn't fully load
+        }
+        
+        // Simulate human behavior
+        await this.stealthHelper.simulateHumanBehavior(page, {
+          readingTime: 2000 + Math.random() * 3000,
+          scrollCount: 1 + Math.floor(Math.random() * 3),
+          mouseMovement: true,
+          randomPauses: true
+        });
 
-      // Determine page type and handle accordingly
-      if (this.isAuthorPage(url)) {
-        await this.handleAuthorPage(page, url);
-      } else if (this.isArticlePage(url)) {
-        await this.handleArticlePage(page, url);
-      } else {
-        log.warning(`Unknown page type: ${url}`);
+        // Determine page type and handle accordingly
+        if (this.isAuthorPage(url)) {
+          await this.handleAuthorPage(page, url);
+        } else if (this.isArticlePage(url)) {
+          await this.handleArticlePage(page, url);
+        } else {
+          log.warning(`Unknown page type: ${url}`);
+        }
+        
+        // Mark proxy as successful
+        const currentProxy = this.proxyManager.getCurrentProxy();
+        if (currentProxy) {
+          this.proxyManager.markProxySuccess(currentProxy);
+        }
+        
+        // Success, exit retry loop
+        break;
+        
+      } catch (error) {
+        retryCount++;
+        this.logger.warning(`Attempt ${retryCount} failed for ${url}: ${error.message}`);
+        
+        if (retryCount === maxRetries) {
+          this.logger.error(`Max retries reached for ${url}, failing request`);
+          this.stats.errors++;
+          
+          // Mark proxy as failed
+          const currentProxy = this.proxyManager.getCurrentProxy();
+          if (currentProxy) {
+            this.proxyManager.markProxyFailed(currentProxy);
+          }
+          
+          throw error;
+        }
+        
+        // Wait before retry with exponential backoff
+        const retryDelay = 2000 * retryCount + Math.random() * 1000;
+        this.logger.info(`Waiting ${retryDelay}ms before retry ${retryCount + 1}`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
-      
-      // Mark proxy as successful
-      const currentProxy = this.proxyManager.getCurrentProxy();
-      if (currentProxy) {
-        this.proxyManager.markProxySuccess(currentProxy);
-      }
-      
-    } catch (error) {
-      this.logger.error(`Error handling request: ${url}`, error);
-      this.stats.errors++;
-      
-      // Mark proxy as failed
-      const currentProxy = this.proxyManager.getCurrentProxy();
-      if (currentProxy) {
-        this.proxyManager.markProxyFailed(currentProxy);
-      }
-      
-      throw error;
     }
   }
 
@@ -256,9 +288,7 @@ export class MediumScraper {
   async handleAuthorPage(page, url) {
     try {
       const authorScraper = new AuthorScraper(page, this.input);
-      console.log('DEBUG: About to call authorScraper.scrapeAuthor()');
       const authorData = await authorScraper.scrapeAuthor();
-      console.log('DEBUG: authorScraper.scrapeAuthor() completed, authorData:', JSON.stringify(authorData, null, 2));
       
       if (authorData) {
         this.logger.logAuthorScraped(authorData);

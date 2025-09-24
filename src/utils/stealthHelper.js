@@ -71,149 +71,157 @@ export class StealthHelper {
         await this.setupBehavioralSimulation(page);
       }
       
-      console.log('Advanced stealth settings applied to page');
+      // Advanced stealth settings applied to page
     } catch (error) {
       console.error('Failed to apply stealth settings:', error.message);
     }
   }
 
   async applyBasicStealth(page) {
-    // Remove automation indicators
-    await page.evaluateOnNewDocument(() => {
-      // Remove webdriver property
-      Object.defineProperty(navigator, 'webdriver', {
-        get: () => undefined,
-        configurable: true
-      });
+    try {
+      // Remove automation indicators
+      await page.addInitScript(() => {
+        // Remove webdriver property
+        Object.defineProperty(navigator, 'webdriver', {
+          get: () => undefined,
+          configurable: true
+        });
 
-      // Mock plugins
-      Object.defineProperty(navigator, 'plugins', {
-        get: () => [
-          {
-            0: { type: "application/x-google-chrome-pdf", suffixes: "pdf", description: "Portable Document Format" },
-            description: "Portable Document Format",
-            filename: "internal-pdf-viewer",
-            length: 1,
-            name: "Chrome PDF Plugin"
-          },
-          {
-            0: { type: "application/pdf", suffixes: "pdf", description: "" },
-            description: "",
-            filename: "mhjfbmdgcfjbbpaeojofohoefgiehjai",
-            length: 1,
-            name: "Chrome PDF Viewer"
-          }
-        ],
-        configurable: true
-      });
+        // Mock plugins
+        Object.defineProperty(navigator, 'plugins', {
+          get: () => [
+            {
+              0: { type: "application/x-google-chrome-pdf", suffixes: "pdf", description: "Portable Document Format" },
+              description: "Portable Document Format",
+              filename: "internal-pdf-viewer",
+              length: 1,
+              name: "Chrome PDF Plugin"
+            },
+            {
+              0: { type: "application/pdf", suffixes: "pdf", description: "" },
+              description: "",
+              filename: "mhjfbmdgcfjbbpaeojofohoefgiehjai",
+              length: 1,
+              name: "Chrome PDF Viewer"
+            }
+          ],
+          configurable: true
+        });
 
-      // Mock languages
-      Object.defineProperty(navigator, 'languages', {
-        get: () => ['en-US', 'en', 'es', 'fr'],
-        configurable: true
-      });
+        // Mock languages
+        Object.defineProperty(navigator, 'languages', {
+          get: () => ['en-US', 'en', 'es', 'fr'],
+          configurable: true
+        });
 
-      // Mock platform
-      const platforms = ['Win32', 'MacIntel', 'Linux x86_64', 'X11'];
-      const randomPlatform = platforms[Math.floor(Math.random() * platforms.length)];
-      Object.defineProperty(navigator, 'platform', {
-        get: () => randomPlatform,
-        configurable: true
-      });
+        // Mock platform
+        const platforms = ['Win32', 'MacIntel', 'Linux x86_64', 'X11'];
+        const randomPlatform = platforms[Math.floor(Math.random() * platforms.length)];
+        Object.defineProperty(navigator, 'platform', {
+          get: () => randomPlatform,
+          configurable: true
+        });
 
-      // Mock user agent
-      const userAgents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      ];
-      const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
-      Object.defineProperty(navigator, 'userAgent', {
-        get: () => randomUserAgent,
-        configurable: true
+        // Mock user agent
+        const userAgents = [
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ];
+        const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+        Object.defineProperty(navigator, 'userAgent', {
+          get: () => randomUserAgent,
+          configurable: true
+        });
       });
-    });
+    } catch (error) {
+      console.error('Failed to apply basic stealth settings:', error.message);
+    }
   }
 
   async applyFingerprintRandomization(page) {
-    await page.evaluateOnNewDocument(() => {
-      // Randomize screen dimensions
-      const screenSizes = [
-        { width: 1920, height: 1080 },
-        { width: 1366, height: 768 },
-        { width: 1440, height: 900 },
-        { width: 1536, height: 864 },
-        { width: 1280, height: 720 }
-      ];
-      const randomScreen = screenSizes[Math.floor(Math.random() * screenSizes.length)];
-      
-      Object.defineProperty(screen, 'width', {
-        get: () => randomScreen.width,
-        configurable: true
-      });
-      Object.defineProperty(screen, 'height', {
-        get: () => randomScreen.height,
-        configurable: true
-      });
-      Object.defineProperty(screen, 'availWidth', {
-        get: () => randomScreen.width,
-        configurable: true
-      });
-      Object.defineProperty(screen, 'availHeight', {
-        get: () => randomScreen.height - 100, // Account for taskbar
-        configurable: true
-      });
+    try {
+      await page.addInitScript(() => {
+        // Randomize screen dimensions
+        const screenSizes = [
+          { width: 1920, height: 1080 },
+          { width: 1366, height: 768 },
+          { width: 1440, height: 900 },
+          { width: 1536, height: 864 },
+          { width: 1280, height: 720 }
+        ];
+        const randomScreen = screenSizes[Math.floor(Math.random() * screenSizes.length)];
+        
+        Object.defineProperty(screen, 'width', {
+          get: () => randomScreen.width,
+          configurable: true
+        });
+        Object.defineProperty(screen, 'height', {
+          get: () => randomScreen.height,
+          configurable: true
+        });
+        Object.defineProperty(screen, 'availWidth', {
+          get: () => randomScreen.width,
+          configurable: true
+        });
+        Object.defineProperty(screen, 'availHeight', {
+          get: () => randomScreen.height - 100, // Account for taskbar
+          configurable: true
+        });
 
-      // Randomize color depth
-      const colorDepths = [24, 30, 32];
-      Object.defineProperty(screen, 'colorDepth', {
-        get: () => colorDepths[Math.floor(Math.random() * colorDepths.length)],
-        configurable: true
-      });
+        // Randomize color depth
+        const colorDepths = [24, 30, 32];
+        Object.defineProperty(screen, 'colorDepth', {
+          get: () => colorDepths[Math.floor(Math.random() * colorDepths.length)],
+          configurable: true
+        });
 
-      // Randomize timezone
-      const timezones = ['America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Tokyo'];
-      const randomTimezone = timezones[Math.floor(Math.random() * timezones.length)];
-      
-      // Override Date methods
-      const OriginalDate = Date;
-      const timezoneOffset = getTimezoneOffset(randomTimezone);
-      
-      function getTimezoneOffset(timezone) {
-        const date = new OriginalDate();
-        const utc = new OriginalDate(date.getTime() + (date.getTimezoneOffset() * 60000));
-        const target = new OriginalDate(utc.toLocaleString("en-US", {timeZone: timezone}));
-        return (utc - target) / (1000 * 60);
-      }
-
-      Date.prototype.getTimezoneOffset = function() {
-        return timezoneOffset;
-      };
-
-      // Mock WebGL
-      const getParameter = WebGLRenderingContext.prototype.getParameter;
-      const vendors = ['Intel Inc.', 'NVIDIA Corporation', 'ATI Technologies Inc.'];
-      const renderers = ['Intel Iris OpenGL Engine', 'NVIDIA GeForce GTX 1080', 'AMD Radeon Pro 580'];
-      
-      WebGLRenderingContext.prototype.getParameter = function(parameter) {
-        if (parameter === 37445) {
-          return vendors[Math.floor(Math.random() * vendors.length)];
+        // Randomize timezone
+        const timezones = ['America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Tokyo'];
+        const randomTimezone = timezones[Math.floor(Math.random() * timezones.length)];
+        
+        // Override Date methods
+        const OriginalDate = Date;
+        const timezoneOffset = getTimezoneOffset(randomTimezone);
+        
+        function getTimezoneOffset(timezone) {
+          const date = new OriginalDate();
+          const utc = new OriginalDate(date.getTime() + (date.getTimezoneOffset() * 60000));
+          const target = new OriginalDate(utc.toLocaleString("en-US", {timeZone: timezone}));
+          return (utc - target) / (1000 * 60);
         }
-        if (parameter === 37446) {
-          return renderers[Math.floor(Math.random() * renderers.length)];
-        }
-        return getParameter(parameter);
-      };
 
-      // Mock canvas fingerprint
-      const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
-      HTMLCanvasElement.prototype.toDataURL = function(type) {
-        if (type === 'image/webp') {
-          return 'data:image/webp;base64,' + Math.random().toString(36).substring(2, 15);
-        }
-        return originalToDataURL.apply(this, arguments);
-      };
-    });
+        Date.prototype.getTimezoneOffset = function() {
+          return timezoneOffset;
+        };
+
+        // Mock WebGL
+        const getParameter = WebGLRenderingContext.prototype.getParameter;
+        const vendors = ['Intel Inc.', 'NVIDIA Corporation', 'ATI Technologies Inc.'];
+        const renderers = ['Intel Iris OpenGL Engine', 'NVIDIA GeForce GTX 1080', 'AMD Radeon Pro 580'];
+        
+        WebGLRenderingContext.prototype.getParameter = function(parameter) {
+          if (parameter === 37445) {
+            return vendors[Math.floor(Math.random() * vendors.length)];
+          }
+          if (parameter === 37446) {
+            return renderers[Math.floor(Math.random() * renderers.length)];
+          }
+          return getParameter.call(this, parameter);
+        };
+
+        // Mock canvas fingerprint
+        const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+        HTMLCanvasElement.prototype.toDataURL = function(type) {
+          if (type === 'image/webp') {
+            return 'data:image/webp;base64,' + Math.random().toString(36).substring(2, 15);
+          }
+          return originalToDataURL.apply(this, arguments);
+        };
+      });
+    } catch (error) {
+      console.error('Failed to apply fingerprint randomization:', error.message);
+    }
   }
 
   async setupBehavioralSimulation(page) {
@@ -234,92 +242,104 @@ export class StealthHelper {
   }
 
   async setupMouseMovement(page) {
-    await page.evaluateOnNewDocument((patterns) => {
-      let lastMouseMove = 0;
-      const mouseMovement = {
-        movementX: 0,
-        movementY: 0,
-        clientX: Math.floor(Math.random() * window.innerWidth),
-        clientY: Math.floor(Math.random() * window.innerHeight)
-      };
+    try {
+      await page.addInitScript((patterns) => {
+        let lastMouseMove = 0;
+        const mouseMovement = {
+          movementX: 0,
+          movementY: 0,
+          clientX: Math.floor(Math.random() * window.innerWidth),
+          clientY: Math.floor(Math.random() * window.innerHeight)
+        };
 
-      // Override mouse event properties
-      document.addEventListener('mousemove', (event) => {
-        const now = Date.now();
-        if (now - lastMouseMove > 50) { // Throttle to realistic intervals
-          mouseMovement.movementX = (Math.random() - 0.5) * 10;
-          mouseMovement.movementY = (Math.random() - 0.5) * 10;
-          mouseMovement.clientX = Math.min(window.innerWidth, Math.max(0, mouseMovement.clientX + mouseMovement.movementX));
-          mouseMovement.clientY = Math.min(window.innerHeight, Math.max(0, mouseMovement.clientY + mouseMovement.movementY));
-          lastMouseMove = now;
-        }
-      }, true);
-    });
+        // Override mouse event properties
+        document.addEventListener('mousemove', (event) => {
+          const now = Date.now();
+          if (now - lastMouseMove > 50) { // Throttle to realistic intervals
+            mouseMovement.movementX = (Math.random() - 0.5) * 10;
+            mouseMovement.movementY = (Math.random() - 0.5) * 10;
+            mouseMovement.clientX = Math.min(window.innerWidth, Math.max(0, mouseMovement.clientX + mouseMovement.movementX));
+            mouseMovement.clientY = Math.min(window.innerHeight, Math.max(0, mouseMovement.clientY + mouseMovement.movementY));
+            lastMouseMove = now;
+          }
+        }, true);
+      }, this.behavioralPatterns);
+    } catch (error) {
+      console.error('Failed to setup mouse movement:', error.message);
+    }
   }
 
   async setupScrollSimulation(page) {
-    await page.evaluateOnNewDocument((patterns) => {
-      let scrollTop = 0;
-      let scrollLeft = 0;
-      let lastScrollTime = 0;
+    try {
+      await page.addInitScript((patterns) => {
+        let scrollTop = 0;
+        let scrollLeft = 0;
+        let lastScrollTime = 0;
 
-      // Mock scroll properties with realistic behavior
-      Object.defineProperty(window, 'scrollY', {
-        get: () => scrollTop,
-        configurable: true
-      });
+        // Mock scroll properties with realistic behavior
+        Object.defineProperty(window, 'scrollY', {
+          get: () => scrollTop,
+          configurable: true
+        });
 
-      Object.defineProperty(window, 'scrollX', {
-        get: () => scrollLeft,
-        configurable: true
-      });
+        Object.defineProperty(window, 'scrollX', {
+          get: () => scrollLeft,
+          configurable: true
+        });
 
-      Object.defineProperty(document.documentElement, 'scrollTop', {
-        get: () => scrollTop,
-        configurable: true
-      });
+        Object.defineProperty(document.documentElement, 'scrollTop', {
+          get: () => scrollTop,
+          configurable: true
+        });
 
-      Object.defineProperty(document.documentElement, 'scrollLeft', {
-        get: () => scrollLeft,
-        configurable: true
-      });
+        Object.defineProperty(document.documentElement, 'scrollLeft', {
+          get: () => scrollLeft,
+          configurable: true
+        });
 
-      // Simulate realistic scroll events
-      window.addEventListener('scroll', () => {
-        const now = Date.now();
-        if (now - lastScrollTime > 100) {
-          scrollTop = Math.max(0, Math.min(document.body.scrollHeight - window.innerHeight, scrollTop + (Math.random() - 0.5) * 100));
-          scrollLeft = Math.max(0, Math.min(document.body.scrollWidth - window.innerWidth, scrollLeft + (Math.random() - 0.5) * 50));
-          lastScrollTime = now;
-        }
-      });
-    });
+        // Simulate realistic scroll events
+        window.addEventListener('scroll', () => {
+          const now = Date.now();
+          if (now - lastScrollTime > 100) {
+            scrollTop = Math.max(0, Math.min(document.body.scrollHeight - window.innerHeight, scrollTop + (Math.random() - 0.5) * 100));
+            scrollLeft = Math.max(0, Math.min(document.body.scrollWidth - window.innerWidth, scrollLeft + (Math.random() - 0.5) * 50));
+            lastScrollTime = now;
+          }
+        });
+      }, this.behavioralPatterns);
+    } catch (error) {
+      console.error('Failed to setup scroll simulation:', error.message);
+    }
   }
 
   async setupTimingRandomization(page) {
-    await page.evaluateOnNewDocument(() => {
-      // Randomize timing functions
-      const originalSetTimeout = window.setTimeout;
-      const originalSetInterval = window.setInterval;
-      
-      window.setTimeout = function(callback, delay, ...args) {
-        const randomizedDelay = delay + (Math.random() - 0.5) * 100;
-        return originalSetTimeout.call(this, callback, Math.max(0, randomizedDelay), ...args);
-      };
+    try {
+      await page.addInitScript(() => {
+        // Randomize timing functions
+        const originalSetTimeout = window.setTimeout;
+        const originalSetInterval = window.setInterval;
+        
+        window.setTimeout = function(callback, delay, ...args) {
+          const randomizedDelay = delay + (Math.random() - 0.5) * 100;
+          return originalSetTimeout.call(this, callback, Math.max(0, randomizedDelay), ...args);
+        };
 
-      window.setInterval = function(callback, delay, ...args) {
-        const randomizedDelay = delay + (Math.random() - 0.5) * 50;
-        return originalSetInterval.call(this, callback, Math.max(0, randomizedDelay), ...args);
-      };
+        window.setInterval = function(callback, delay, ...args) {
+          const randomizedDelay = delay + (Math.random() - 0.5) * 50;
+          return originalSetInterval.call(this, callback, Math.max(0, randomizedDelay), ...args);
+        };
 
-      // Randomize performance timing
-      const originalNow = performance.now;
-      const timeOffset = Math.random() * 1000;
-      
-      performance.now = function() {
-        return originalNow.call(this) + timeOffset;
-      };
-    });
+        // Randomize performance timing
+        const originalNow = performance.now;
+        const timeOffset = Math.random() * 1000;
+        
+        performance.now = function() {
+          return originalNow.call(this) + timeOffset;
+        };
+      });
+    } catch (error) {
+      console.error('Failed to setup timing randomization:', error.message);
+    }
   }
 
   async simulateHumanBehavior(page, options = {}) {
@@ -339,7 +359,7 @@ export class StealthHelper {
         await this.simulateMouseMovement(page);
       }
       
-      console.log('Human behavior simulation completed');
+      // Human behavior simulation completed
     } catch (error) {
       console.error('Human behavior simulation failed:', error.message);
     }

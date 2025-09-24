@@ -36,7 +36,7 @@ export class PaywallDetector {
       
       if (paywallType) {
         this.detectionStats.paywallHits++;
-        console.log(`Paywall detected: ${paywallType}`);
+        // Paywall detected: ${paywallType}
       }
 
       return {

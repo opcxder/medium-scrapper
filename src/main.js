@@ -22,8 +22,35 @@ Actor.main(async () => {
       throw new Error(`Invalid input: ${validationResult.errors.join(', ')}`);
     }
     
-    // Create scraper instance
-    const scraper = new MediumScraper(input);
+    // Create scraper instance with resource optimization
+    const scraper = new MediumScraper({
+      ...input,
+      // Add resource optimization settings
+      maxConcurrency: 1,
+      maxRequestsPerCrawl: 10,
+      useSessionPool: true,
+      sessionPoolOptions: {
+        maxPoolSize: 1,
+        sessionOptions: {
+          maxErrorScore: 3,
+          errorScoreDecrement: 0.5
+        }
+      },
+      // Add browser launch options for resource optimization
+      launchOptions: {
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu'
+        ]
+      }
+    });
     
     // Set up graceful shutdown
     const gracefulShutdown = async (signal) => {

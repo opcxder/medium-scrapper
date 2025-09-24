@@ -67,6 +67,14 @@ export class AuthorScraper {
 
   async extractAuthorInfo() {
     try {
+      // Check if page is still open
+      if (this.page.isClosed()) {
+        throw new Error('Page has been closed');
+      }
+
+      // Add wait for page stability
+      await this.page.waitForLoadState('networkidle', { timeout: 10000 });
+      
       const authorInfo = await this.page.evaluate((selectors) => {
         const name = document.querySelector(selectors.AUTHOR.NAME)?.textContent?.trim() || '';
         const bio = document.querySelector(selectors.AUTHOR.BIO)?.textContent?.trim() || '';
@@ -114,7 +122,18 @@ export class AuthorScraper {
       
     } catch (error) {
       this.logger.error('Failed to extract author info', error);
-      throw error;
+      // Return default/empty author info instead of throwing
+      return {
+        name: 'Unknown',
+        bio: '',
+        followers: 0,
+        following: 0,
+        avatar: '',
+        username: '',
+        socialLinks: [],
+        publications: [],
+        url: this.page.url()
+      };
     }
   }
 

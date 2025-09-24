@@ -14,7 +14,8 @@
             "type": "integer",
             "description": "Maximum number of posts to scrape (0 for all)",
             "default": 10,
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 50
         },
         "includeContent": {
             "title": "Include Article Content",
@@ -64,4 +65,4 @@
         }
     },
     "required": ["authorUrl"]
-} 
+}
