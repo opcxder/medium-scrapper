@@ -165,7 +165,7 @@ export class MediumScraper {
                  error.message.includes('Navigation') || 
                  error.message.includes('timeout');
         }
-      }
+      },
       
       async requestHandler({ request, page, enqueueLinks, log }) {
         try {
