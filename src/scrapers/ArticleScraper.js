@@ -82,6 +82,66 @@ export class ArticleScraper {
   async extractArticleInfo() {
     try {
       const articleInfo = await this.page.evaluate((selectors) => {
+        // First try to extract data from Apollo state
+        let apolloData = null;
+        try {
+          // Extract Apollo state data
+          const apolloScript = document.querySelector('script:contains("__APOLLO_STATE__")');
+          if (apolloScript) {
+            const scriptContent = apolloScript.innerHTML;
+            const apolloStateMatch = scriptContent.match(/window\.__APOLLO_STATE__\s*=\s*(\{.*\})/s);
+            
+            if (apolloStateMatch && apolloStateMatch[1]) {
+              const apolloState = JSON.parse(apolloStateMatch[1]);
+              
+              // Find post reference in ROOT_QUERY
+              const rootQuery = apolloState.ROOT_QUERY;
+              const postKey = Object.keys(rootQuery).find(k => k.startsWith("post("));
+              
+              if (postKey && rootQuery[postKey].__ref) {
+                const postRef = rootQuery[postKey].__ref;
+                const post = apolloState[postRef];
+                
+                if (post) {
+                  // Extract post data
+                  apolloData = {
+                    title: post.title || '',
+                    subtitle: post.subtitle || '',
+                    author: post.creator?.name || '',
+                    authorUrl: post.creator?.username ? `https://medium.com/@${post.creator.username}` : '',
+                    date: post.firstPublishedAt || post.createdAt || '',
+                    readTime: post.readingTime || '',
+                    claps: post.clapCount || 0,
+                    responses: post.responseCount || 0,
+                    tags: (post.tags || []).map(tag => tag.name || '').filter(Boolean),
+                    publication: {
+                      name: post.collection?.name || '',
+                      url: post.collection?.slug ? `https://medium.com/${post.collection.slug}` : ''
+                    },
+                    mainImage: post.previewImage?.id ? `https://miro.medium.com/${post.previewImage.id}` : '',
+                    isPremium: post.isLocked || post.isMembers || false,
+                    url: window.location.href,
+                    series: post.sequence ? {
+                      name: post.sequence.title || '',
+                      url: post.sequence.slug ? `https://medium.com/sequence/${post.sequence.slug}` : '',
+                      part: post.sequenceIndex || ''
+                    } : null,
+                    // Store paragraph references for content extraction
+                    paragraphRefs: post.content?.bodyModel?.paragraphs || []
+                  };
+                  
+                  // Store the Apollo state for content extraction
+                  window.__EXTRACTED_APOLLO_STATE__ = apolloState;
+                  return apolloData;
+                }
+              }
+            }
+          }
+        } catch (apolloError) {
+          console.error('Error extracting Apollo data:', apolloError);
+        }
+        
+        // Fallback to DOM-based extraction if Apollo extraction fails
         const title = document.querySelector(selectors.ARTICLE.TITLE)?.textContent?.trim() || '';
         const subtitle = document.querySelector(selectors.ARTICLE.SUBTITLE)?.textContent?.trim() || '';
         const author = document.querySelector(selectors.ARTICLE.AUTHOR)?.textContent?.trim() || '';
@@ -102,7 +162,7 @@ export class ArticleScraper {
         
         // Extract main image
         const mainImage = document.querySelector(selectors.ARTICLE.MAIN_IMAGE)?.src || '';
-        
+
         // Determine if premium content
         const premiumIndicators = document.querySelectorAll(selectors.ARTICLE.PREMIUM_INDICATORS);
         const isPremium = premiumIndicators.length > 0;
@@ -242,6 +302,119 @@ export class ArticleScraper {
       await this.scrollThroughArticle();
       
       const content = await this.page.evaluate((selectors) => {
+        // First try to extract content from Apollo state
+        if (window.__EXTRACTED_APOLLO_STATE__) {
+          try {
+            const apolloState = window.__EXTRACTED_APOLLO_STATE__;
+            const content = [];
+            
+            // Find all paragraph references
+            const paragraphRefs = Object.keys(apolloState).filter(key => key.startsWith('Paragraph:'));
+            if (paragraphRefs.length > 0) {
+              // Process each paragraph
+              const processedParagraphs = paragraphRefs.map(ref => {
+                const paragraph = apolloState[ref];
+                if (!paragraph) return null;
+                
+                // Extract paragraph data based on type
+                const type = paragraph.type || '';
+                const text = paragraph.text || '';
+                
+                // Process based on paragraph type
+                switch (type) {
+                  case 'H1':
+                  case 'H2':
+                  case 'H3':
+                  case 'H4':
+                    return { type: 'heading', level: parseInt(type.substring(1), 10), text };
+                  case 'P':
+                    return { type: 'paragraph', text };
+                  case 'BQ':
+                    return { type: 'quote', text };
+                  case 'PRE':
+                    return { type: 'code', language: paragraph.codeBlockMetadata?.lang || 'unknown', code: text };
+                  case 'IMG':
+                    // Handle image - find image metadata
+                    let imageData = { type: 'image', alt: '', src: '' };
+                    if (paragraph.metadata && paragraph.metadata.__ref) {
+                      const imageRef = paragraph.metadata.__ref;
+                      const imageMetadata = apolloState[imageRef];
+                      if (imageMetadata) {
+                        imageData.alt = imageMetadata.alt || '';
+                        imageData.src = imageMetadata.id ? `https://miro.medium.com/${imageMetadata.id}` : '';
+                      }
+                    }
+                    return imageData;
+                  case 'OL':
+                  case 'UL':
+                    // Handle lists - need to extract items
+                    return { 
+                      type: 'list', 
+                      listType: type.toLowerCase(),
+                      items: paragraph.text ? paragraph.text.split('\n').filter(Boolean) : []
+                    };
+                  default:
+                    return { type: 'unknown', text };
+                }
+              }).filter(Boolean);
+              
+              // Organize content
+              let textContent = '';
+              const headings = [];
+              const paragraphs = [];
+              const lists = [];
+              const quotes = [];
+              const codeBlocks = [];
+              const images = [];
+              const links = [];
+              
+              // Process each paragraph
+              processedParagraphs.forEach(p => {
+                if (p.text) textContent += p.text + ' ';
+                
+                switch (p.type) {
+                  case 'heading':
+                    headings.push({ level: p.level, text: p.text });
+                    break;
+                  case 'paragraph':
+                    paragraphs.push(p.text);
+                    break;
+                  case 'quote':
+                    quotes.push({ text: p.text, author: '' });
+                    break;
+                  case 'code':
+                    codeBlocks.push({ language: p.language, code: p.code });
+                    break;
+                  case 'image':
+                    images.push({ src: p.src, alt: p.alt, caption: '' });
+                    break;
+                  case 'list':
+                    lists.push({ type: p.listType, items: p.items });
+                    break;
+                }
+              });
+              
+              // Add to content
+              content.push({
+                textContent,
+                headings,
+                paragraphs,
+                lists,
+                quotes,
+                codeBlocks,
+                images,
+                links,
+                wordCount: textContent.split(/\s+/).filter(word => word.length > 0).length
+              });
+              
+              return content;
+            }
+          } catch (apolloError) {
+            console.error('Error extracting content from Apollo state:', apolloError);
+          }
+        }
+        
+        // Fallback to DOM-based extraction if Apollo extraction fails
         const contentElements = document.querySelectorAll(selectors.ARTICLE.CONTENT);
         const content = [];
         

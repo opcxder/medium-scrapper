@@ -64,10 +64,21 @@ export class PaywallDetector {
       const premiumSelectors = [
         SELECTORS.PAYWALL_INDICATOR,
         SELECTORS.MEMBER_ONLY_BADGE,
-        'div[data-testid="premiumContent"]',
-        'span:contains("Member-only")',
-        'span:contains("Premium")'
+        'div[data-testid="premiumContent"]'
       ];
+      
+      // Check for text content in spans (replacing invalid :contains selectors)
+      const hasMemberOnlyText = await page.$$eval('span', spans => 
+        spans.some(span => span.textContent.includes('Member-only'))
+      );
+      
+      const hasPremiumText = await page.$$eval('span', spans => 
+        spans.some(span => span.textContent.includes('Premium'))
+      );
+      
+      if (hasMemberOnlyText || hasPremiumText) {
+        return true;
+      }
 
       for (const selector of premiumSelectors) {
         const element = await page.$(selector);

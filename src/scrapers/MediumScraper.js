@@ -266,7 +266,7 @@ export class MediumScraper {
       try {
         // Check if page is still valid
         if (page.isClosed()) {
-          this.logger.warning('Page is closed, creating new page');
+          this.logger.warn('Page is closed, creating new page');
           // Request a new page or handle gracefully
           return;
         }
@@ -310,7 +310,7 @@ export class MediumScraper {
         
       } catch (error) {
         retryCount++;
-        this.logger.warning(`Attempt ${retryCount} failed for ${url}: ${error.message}`);
+        this.logger.warn(`Attempt ${retryCount} failed for ${url}: ${error.message}`);
         
         if (retryCount === maxRetries) {
           this.logger.error(`Max retries reached for ${url}, failing request`);
