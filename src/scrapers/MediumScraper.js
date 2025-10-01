@@ -147,25 +147,14 @@ export class MediumScraper {
         launchOptions
       },
       
-      // Increase timeouts and add retry logic with exponential backoff
+      // Increase timeouts for better reliability
       requestHandlerTimeoutSecs: 600, // Increase from 300s to 600s
       navigationTimeoutSecs: 180,     // Increase navigation timeout from 120s to 180s
       maxRequestRetries: 8,           // Increase retries from 5 to 8
       maxConcurrency: 1,              // Keep concurrency at 1 to reduce CPU load
-      retryStrategy: {
-        // Implement exponential backoff for retries
-        retryOnStatusCodes: [408, 429, 500, 502, 503, 504, 522, 524],
-        maxRetries: 8,
-        minDelayMs: 5000,  // Start with 5 second delay
-        maxDelayMs: 60000, // Max 1 minute delay
-        jitterRatio: 0.2,  // Add some randomness to prevent thundering herd
-        isRetryableFunction: (error) => {
-          // Retry on navigation and timeout errors
-          return error.name === 'TimeoutError' || 
-                 error.message.includes('Navigation') || 
-                 error.message.includes('timeout');
-        }
-      },
+      
+      // Note: Custom retry strategy implemented in handleFailedRequestFunction
+      retryOnStatusCodes: [408, 429, 500, 502, 503, 504, 522, 524],
       
       async requestHandler({ request, page, enqueueLinks, log }) {
         try {
@@ -189,7 +178,47 @@ export class MediumScraper {
             console.error(`Request failed: ${request.url}`, error);
             console.error(`Error details: ${error.message || error}`);
           }
-          if (scraperInstance && scraperInstance.stats) {
+          
+          // Implement exponential backoff for retries
+          const retryCount = request.retryCount || 0;
+          
+          // Check if we should retry based on error type
+          const isRetryableError = error.name === 'TimeoutError' || 
+                                  error.message.includes('Navigation') || 
+                                  error.message.includes('timeout');
+                                  
+          // Check if we should retry based on status code
+          const statusCode = error.statusCode || 0;
+          const retryableStatusCodes = [408, 429, 500, 502, 503, 504, 522, 524];
+          const isRetryableStatus = retryableStatusCodes.includes(statusCode);
+          
+          if ((isRetryableError || isRetryableStatus) && retryCount < 8) {
+            // Calculate exponential backoff delay with jitter
+            const baseDelay = 5000; // 5 seconds base
+            const maxDelay = 60000; // 60 seconds max
+            const jitterRatio = 0.2; // 20% jitter
+            
+            // Calculate delay with exponential backoff: baseDelay * 2^retryCount
+            let delay = Math.min(baseDelay * Math.pow(2, retryCount), maxDelay);
+            
+            // Add jitter: delay ± (delay * jitterRatio)
+            const jitter = delay * jitterRatio * (Math.random() - 0.5) * 2;
+            delay = Math.max(baseDelay, delay + jitter);
+            
+            if (scraperInstance && scraperInstance.logger) {
+              scraperInstance.logger.info(`Retrying request ${request.url} in ${Math.round(delay/1000)}s (attempt ${retryCount + 1}/8)`);
+            }
+            
+            // Update retry count
+            request.retryCount = retryCount + 1;
+            
+            // Schedule retry after delay
+            setTimeout(() => {
+              if (scraperInstance && scraperInstance.crawler) {
+                scraperInstance.crawler.addRequests([request]);
+              }
+            }, delay);
+          } else if (scraperInstance && scraperInstance.stats) {
             scraperInstance.stats.errors++;
           }
         } catch (handlerError) {
