@@ -92,7 +92,7 @@ export class MediumScraper {
 
   async setupCrawler() {
     const launchOptions = {
-      headless: false, // Use headful for better stealth
+      headless: true, // Use headless mode to reduce CPU usage
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -108,13 +108,13 @@ export class MediumScraper {
         '--disable-renderer-backgrounding',
         '--disable-features=site-per-process',
         '--disable-blink-features=AutomationControlled',
-        '--window-size=1920,1080',
-        '--start-maximized',
-        `--user-agent=${getRandomUserAgent()}`
+        '--window-size=1366,768', // Reduced window size
+        `--user-agent=${getRandomUserAgent()}`,
+        '--js-flags=--expose-gc,--max-old-space-size=512' // Limit memory usage
       ],
       defaultViewport: {
-        width: 1920,
-        height: 1080
+        width: 1366,
+        height: 768 // Reduced viewport size
       },
       ignoreHTTPSErrors: true
     };
@@ -135,14 +135,15 @@ export class MediumScraper {
       },
       
       // Increase timeouts and add retry logic
-      requestHandlerTimeoutSecs: 300, // Increase from default 60s
-      navigationTimeoutSecs: 120,     // Increase navigation timeout from 60s
-      maxRequestRetries: 5,           // Add more retries
+      requestHandlerTimeoutSecs: 600, // Increase from 300s to 600s
+      navigationTimeoutSecs: 180,     // Increase navigation timeout from 120s to 180s
+      maxRequestRetries: 8,           // Increase retries from 5 to 8
+      maxConcurrency: 1,              // Keep concurrency at 1 to reduce CPU load
       
       async requestHandler({ request, page, enqueueLinks, log }) {
         try {
           // Set longer timeout for this specific request
-          page.setDefaultTimeout(120000);
+          page.setDefaultTimeout(180000); // Increased from 120s to 180s
           
           await boundRequestHandler(request, page, enqueueLinks, log);
         } catch (error) {

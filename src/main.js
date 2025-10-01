@@ -22,20 +22,22 @@ Actor.main(async () => {
       throw new Error(`Invalid input: ${validationResult.errors.join(', ')}`);
     }
     
-    // Create scraper instance with resource optimization
+    // Create scraper instance with enhanced resource optimization
     const scraper = new MediumScraper({
       ...input,
       // Add resource optimization settings
       maxConcurrency: 1,
-      maxRequestsPerCrawl: 10,
+      maxRequestsPerCrawl: 5, // Reduced from 10 to 5
       useSessionPool: true,
       sessionPoolOptions: {
         maxPoolSize: 1,
         sessionOptions: {
-          maxErrorScore: 3,
-          errorScoreDecrement: 0.5
+          maxErrorScore: 5, // Increased from 3 to 5
+          errorScoreDecrement: 0.2 // Reduced from 0.5 to 0.2
         }
       },
+      // Add memory management
+      memoryMbytes: 512, // Limit memory usage
       // Add browser launch options for resource optimization
       launchOptions: {
         headless: true,

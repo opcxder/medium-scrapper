@@ -375,12 +375,12 @@ export class StealthHelper {
       const scrollBehavior = Math.random() > 0.5 ? 'smooth' : 'auto';
       const scrollDistance = Math.floor(Math.random() * 500) + 200;
       
-      await page.evaluate((distance, behavior) => {
+      await page.evaluate(params => {
         window.scrollBy({
-          top: distance,
-          behavior: behavior
+          top: params.distance,
+          behavior: params.behavior
         });
-      }, scrollDistance, scrollBehavior);
+      }, { distance: scrollDistance, behavior: scrollBehavior });
       
       // Random pause
       if (randomPauses && Math.random() > 0.7) {

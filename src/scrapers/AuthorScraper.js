@@ -62,6 +62,9 @@ export class AuthorScraper {
       
     } catch (error) {
       this.logger.warn('Timeout waiting for author page elements, continuing anyway');
+      this.logger.info('Attempting to proceed with partial author data extraction');
+      // Add a small delay before continuing to ensure page is in a usable state
+      await this.page.waitForTimeout(3000);
     }
   }
 
