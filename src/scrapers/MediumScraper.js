@@ -108,13 +108,26 @@ export class MediumScraper {
         '--disable-renderer-backgrounding',
         '--disable-features=site-per-process',
         '--disable-blink-features=AutomationControlled',
-        '--window-size=1366,768', // Reduced window size
+        '--window-size=1024,768', // Further reduced window size
         `--user-agent=${getRandomUserAgent()}`,
-        '--js-flags=--expose-gc,--max-old-space-size=512' // Limit memory usage
+        '--js-flags=--expose-gc,--max-old-space-size=2048', // Increased memory limit
+        '--disable-extensions',
+        '--disable-component-extensions-with-background-pages',
+        '--disable-default-apps',
+        '--mute-audio',
+        '--disable-speech-api',
+        '--disable-breakpad',
+        '--disable-3d-apis',
+        '--disable-canvas-aa',
+        '--disable-webgl'
       ],
       defaultViewport: {
-        width: 1366,
-        height: 768 // Reduced viewport size
+        width: 1024,
+        height: 768, // Reduced viewport size
+        deviceScaleFactor: 1,
+        isMobile: false,
+        hasTouch: false,
+        isLandscape: true
       },
       ignoreHTTPSErrors: true
     };
@@ -134,11 +147,25 @@ export class MediumScraper {
         launchOptions
       },
       
-      // Increase timeouts and add retry logic
+      // Increase timeouts and add retry logic with exponential backoff
       requestHandlerTimeoutSecs: 600, // Increase from 300s to 600s
       navigationTimeoutSecs: 180,     // Increase navigation timeout from 120s to 180s
       maxRequestRetries: 8,           // Increase retries from 5 to 8
       maxConcurrency: 1,              // Keep concurrency at 1 to reduce CPU load
+      retryStrategy: {
+        // Implement exponential backoff for retries
+        retryOnStatusCodes: [408, 429, 500, 502, 503, 504, 522, 524],
+        maxRetries: 8,
+        minDelayMs: 5000,  // Start with 5 second delay
+        maxDelayMs: 60000, // Max 1 minute delay
+        jitterRatio: 0.2,  // Add some randomness to prevent thundering herd
+        isRetryableFunction: (error) => {
+          // Retry on navigation and timeout errors
+          return error.name === 'TimeoutError' || 
+                 error.message.includes('Navigation') || 
+                 error.message.includes('timeout');
+        }
+      }
       
       async requestHandler({ request, page, enqueueLinks, log }) {
         try {
@@ -283,7 +310,13 @@ export class MediumScraper {
   }
 
   isArticlePage(url) {
-    return url.includes('/p/') || url.match(/\/[a-f0-9]{12,}$/) || url.includes('/story/');
+    // Enhanced article detection for Medium's current structure
+    return url.includes('/p/') || 
+           url.match(/\/[a-f0-9]{12,}$/) || 
+           url.includes('/story/') || 
+           url.includes('medium.com/') && 
+           (url.includes('-') || // Most Medium article URLs contain hyphens
+            url.match(/[a-z0-9]+-[a-z0-9]+-[a-z0-9]+/)); // Pattern for slug with hyphens
   }
 
   async handleAuthorPage(page, url) {

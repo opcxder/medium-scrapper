@@ -27,7 +27,7 @@ Actor.main(async () => {
       ...input,
       // Add resource optimization settings
       maxConcurrency: 1,
-      maxRequestsPerCrawl: 5, // Reduced from 10 to 5
+      maxRequestsPerCrawl: 3, // Reduced from 5 to 3 to match actual needs
       useSessionPool: true,
       sessionPoolOptions: {
         maxPoolSize: 1,
@@ -37,7 +37,7 @@ Actor.main(async () => {
         }
       },
       // Add memory management
-      memoryMbytes: 512, // Limit memory usage
+      memoryMbytes: 2048, // Increased from 512MB to 2048MB to prevent memory overload
       // Add browser launch options for resource optimization
       launchOptions: {
         headless: true,
