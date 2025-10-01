@@ -153,8 +153,7 @@ export class MediumScraper {
       maxRequestRetries: 8,           // Increase retries from 5 to 8
       maxConcurrency: 1,              // Keep concurrency at 1 to reduce CPU load
       
-      // Note: Custom retry strategy implemented in handleFailedRequestFunction
-      retryOnStatusCodes: [408, 429, 500, 502, 503, 504, 522, 524],
+      // Note: Custom retry strategy implemented in failedRequestHandler
       
       async requestHandler({ request, page, enqueueLinks, log }) {
         try {
